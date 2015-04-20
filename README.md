@@ -3,8 +3,11 @@
 A Python wrapper around the [OSRM API](https://github.com/Project-OSRM/osrm-backend/wiki/Server-api)
 
 ## Install
+```
+git clone git@github.com:ustroetz/python-osrm.git
+cd python-osrm
 python setup.py install
-
+```
 # Requires
   * polyline==1.1
   * requests
