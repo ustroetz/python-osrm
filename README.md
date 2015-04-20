@@ -16,7 +16,7 @@ python setup.py install
 
 ### match
 ```
-from osrm import match
+from osrm import osrm.match as match
 
 points = [([-33.45017046193167,-70.65281867980957], 0),
           ([-33.45239047269638,-70.65300107002258], 5),
