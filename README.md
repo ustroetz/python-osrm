@@ -15,9 +15,9 @@ python setup.py install
 ```
 from osrm import match
 
-points = [([-70.6541383266449,-33.449597546702904], 0),
-          ([-70.65479278564453,-33.45069861480559], 5),
-          ([-70.65380573272705,-33.452023458708645], 7)]
+points = [([-33.45017046193167,-70.65281867980957], 0),
+          ([-33.45239047269638,-70.65300107002258], 5),
+          ([-33.453867464504555,-70.65277576446533], 7)]
 
-print match(points, host='http://localhost:5000', geometry=False,gps_precision=-1, matching_beta=-1)
+print match(points, host='http://localhost:5000', geometry=True,gps_precision=-1, matching_beta=-1, decode_polyline=True)
 ```
