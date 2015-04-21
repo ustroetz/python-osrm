@@ -9,7 +9,7 @@ cd python-osrm
 python setup.py install
 ```
 # Requires
-  * polyline==1.1
+  * polyline
   * requests
 
 ## Usage
