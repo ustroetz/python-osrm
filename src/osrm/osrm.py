@@ -6,7 +6,6 @@ def match(points, host='http://localhost:5000', geometry=True, gps_precision=-1,
     for loc, t in points:
         url += 'loc=' + str(loc[0]) + ',' + str(loc[1]) + '&t=' + str(t)
     url += '&geometry=' + str(geometry).lower() + '&gps_precision=' + str(gps_precision) + '&matching_beta=' + str(matching_beta)
-    print url
     r = requests.get(url)
     r_json = r.json()
     if decode_polyline:
