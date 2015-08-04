@@ -1,7 +1,9 @@
 import requests
 from polyline.codec import PolylineCodec
-from osgeo import ogr
-import sys
+from osgeo.ogr import Geometry
+from pandas import DataFrame
+import numpy as np
+from itertools import islice
 
 
 def match(points, host='http://localhost:5000', geometry=True,
@@ -18,24 +20,28 @@ def match(points, host='http://localhost:5000', geometry=True,
         if 'matchings' in r_json.keys():
             for i, matching in enumerate(r_json['matchings']):
                 geom_encoded = r_json["matchings"][i]["geometry"]
-                geom_decoded = [[point[0]/10.0, point[1]/10.0] for point in PolylineCodec().decode(geom_encoded)]
+                geom_decoded = [[point[0] / 10.0,
+                                 point[1] / 10.0] for point
+                                in PolylineCodec().decode(geom_encoded)]
                 r_json["matchings"][i]["geometry"] = geom_decoded
         else:
             print('No matching geometry to decode')
     return r_json
 
 
-def simple_viaroute(coord_origine, coord_dest, alt=False,
+def simple_viaroute(coord_origin, coord_dest, alt=False,
                     output='raw', host='http://localhost:5000'):
     """
+    Function wrapping OSRM 'viaroute' function and returning the JSON reponse
+    with the route_geometry decoded (in WKT or WKB) if needed.
     Params:
     coord_origine: list of two float
         [x ,y] where x is longitude and y is latitude
     coord_dest: list of two float
         [x ,y] where x is longitude and y is latitude
-    alt: boolean, default=False
+    alt: boolean, default False
         Query (and resolve geometry if asked) for alternatives routes
-    output: str, default= 'wkt'
+    output: str, default 'wkt'
         Define the type of output
     host: str, default 'http://localhost:5000'
         Url and port of the OSRM instance (no final bakslash)
@@ -57,9 +63,10 @@ def simple_viaroute(coord_origine, coord_dest, alt=False,
         print('Unknow \'output\' parameter')
         return -1
 
-    url = '{}/viaroute?loc={}&loc={}&instructions=false&alt=false'.format(host,
-                               str(coord_origine[1])+','+str(coord_origine[0]),
-                               str(coord_dest[1])+','+str(coord_dest[0]))
+    url = ('{}/viaroute?loc={}&loc={}&instructions=false',
+           '&alt=false').format(host,
+                                str(coord_origin[1])+','+str(coord_origin[0]),
+                                str(coord_dest[1])+','+str(coord_dest[0]))
     try:  # Querying the OSRM local instance..
         rep = requests.get(url)
         parsed_json = rep.json()
@@ -72,7 +79,7 @@ def simple_viaroute(coord_origine, coord_dest, alt=False,
         else:
             epa_dec = PolylineCodec().decode(parsed_json['route_geometry'])
             fausse_liste = str(epa_dec)
-            ma_ligne = ogr.Geometry(ogr.wkbLineString)
+            ma_ligne = Geometry(2)
             lineAddPts = ma_ligne.AddPoint
 
             # List of points coordinates :
@@ -98,18 +105,20 @@ def simple_viaroute(coord_origine, coord_dest, alt=False,
         return -1
 
 
-def table(list_coords, list_ids, input_geom='coord_list', output='pandas',
+def table(list_coords, list_ids, output='df',
           host='http://localhost:5000'):
     """
+    Function wrapping OSRM 'table' function in order to get a matrix of
+    time distance as a numpy array or as a DataFrame
     Params :
         list_coords: list
-            A list of coord as [x, y]
-            like list_coords = [[21.3224, 45.2358],
+            A list of coord as [x, y] , like :
+                 list_coords = [[21.3224, 45.2358],
                                 [21.3856, 42.0094],
                                 [20.9574, 41.5286]] (coords have to be float)
         list_ids: list
-            A list of the corresponding unique id
-                like list_ids = ['name1',
+            A list of the corresponding unique id, like :
+                     list_ids = ['name1',
                                  'name2',
                                  'name3'] (id can be str, int or float)
         host: str, default 'http://localhost:5000'
@@ -119,18 +128,16 @@ def table(list_coords, list_ids, input_geom='coord_list', output='pandas',
                 'pandas', 'df' or 'DataFrame' for a DataFrame
                 'numpy', 'array' or 'np' for a numpy array
     Output:
-        - if 'numpy' : a numpy array containing the time in minute
+        - 'numpy' : a numpy array containing the time in minutes
                 (or NaN when OSRM encounter an error to compute a route)
         or
-        - if 'pandas' : a labeled DataFrame containing the time in minute
-                    (or NaN when OSRM encounter an error to compute a route)
+        - 'pandas' : a labeled DataFrame containing the time matrix in minutes
+                (or NaN when OSRM encounter an error to compute a route)
 
         -1 is return in case of any other error (bad 'output' parameter,
             wrong list of coords/ids, unknow host,
             wrong response from the host, etc.)
     """
-    from pandas import DataFrame as pdDF
-    import numpy as np
     if output.lower() in ('numpy', 'array', 'np'):
         output = 1
     elif output.lower() in ('pandas', 'dataframe', 'df'):
@@ -144,24 +151,95 @@ def table(list_coords, list_ids, input_geom='coord_list', output='pandas',
         tmp = ''.join([str(coord[1]), ',', str(coord[0]), '&loc='])
         query.append(tmp)
     query = (''.join(query))[:-5]
-
     try:  # Querying the OSRM local instance
         rep = requests.get(query)
         parsed_json = rep.json()
     except:
-        print("\nErreur lors du passage de l'URL\n")
-        sys.exit(0)
+        print('Error while contacting OSRM instance')
+        return -1
 
     if 'distance_table' in parsed_json.keys():  # Preparing the result matrix
         mat = np.array(parsed_json['distance_table'])
         mat = mat/(10*60)  # Conversion in minutes
         mat = mat.round(1)
-        mat[mat == 3579139.4] = np.NAN  # Flag the errors with NAN
+        mat[mat == 3579139.4] = np.NaN  # Flag the errors with NaN
         if output == 1:
             return mat
         elif output == 2:
-            df = pdDF(mat, index=list_ids, columns=list_ids)
+            df = DataFrame(mat, index=list_ids, columns=list_ids, dtype=float)
             return df
     else:
         print('No distance table return by OSRM local instance')
+        return -1
+
+
+def chunk(it, size):
+    it = iter(it)
+    return iter(lambda: tuple(islice(it, size)), ())
+
+
+def mat_range2d(l):
+    seen = []
+    for i in l:
+        for j in l:
+            if i != j and j+i not in seen:
+                seen.append(i+j)
+                yield i+j
+
+
+def table_OD(list_coordsO, list_idsO, list_coordsD, list_idsD,
+             OSRM_max_table=100, host='http://localhost:5000'):
+    """
+    Function wrapping OSRM 'table' function in order to get a matrix of
+    time distance between different origins and destinations (N:M)
+    Params :
+        list_coordsO: list
+            A list of coord as [x, y] for the origins, like :
+                 list_coords = [[21.3224, 45.2358],
+                                [21.3856, 42.0094],
+                                [20.9574, 41.5286]] (coords have to be float)
+        list_idsO: list
+            A list of the corresponding unique id for the origins, like :
+                     list_ids = ['name1',
+                                 'name2',
+                                 'name3'] (id can be str, int or float)
+        list_coordsD: list
+            A list of coord as [x, y] for the destinations (same kind as the
+            origins)
+        list_idsD: list
+            A list of the corresponding unique id for the destinations (same
+            kind as the origins)
+        OSRM_max_table: int, default=100
+            The --max-table-size defined when lauching osrm-routed (default is
+            100). It will be used to clip the request in many 'table' requests
+            and reconstruct the matrix.
+        host: str, default 'http://localhost:5000'
+            Url and port of the OSRM instance (no final bakslash)
+
+    Output:
+        A labeled DataFrame containing the time matrix in minutes
+            (or NaN when OSRM encounter an error to compute a route)
+
+        -1 or an empty DataFrame is return in case of any other error
+            (bad 'output' parameter, wrong list of coords/ids, unknow host,
+            wrong response from the host, etc.)
+    """
+    if list_coordsO == list_coordsD and list_idsO == list_idsD:
+        list_coords, list_ids = list_coordsO, list_idsO
+    else:
+        list_coords = list_coordsO + list_coordsD
+        list_ids = list_idsO + list_idsD
+
+    if len(list_coords) > OSRM_max_table:
+        gpd_coords = list(chunk(list_coords, OSRM_max_table//2))
+        gpd_ids = list(chunk(list_ids, OSRM_max_table//2))
+        df = DataFrame(index=list_ids, columns=list_ids, dtype=float)
+        for lcoord, lid in zip(mat_range2d(gpd_coords), mat_range2d(gpd_ids)):
+            df = df.combine_first(table(list(lcoord), list(lid)))
+    else:
+        df = table(list_coords, list_ids)
+
+    try:
+        return df[list_idsO].filter(list_idsD, axis=0)
+    except:
         return -1
