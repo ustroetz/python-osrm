@@ -28,6 +28,22 @@ points = [([-33.45017046193167,-70.65281867980957], 0),
 print match(points, host='http://localhost:5000', geometry=True,gps_precision=-1, matching_beta=-1, decode_polyline=True)
 ```
 
+### simple_viaroute
+Return the original JSON reponse from OSRM (with optionnaly the geometry decoded in WKT or WKB)
+```
+import osrm
+result = osrm.simple_viaroute([21.0566163803209,42.004088575972],
+							  [20.9574645547597, 41.5286973392856], output='WKT')
+
+result['route_summary']['total_distance']
+76271
+
+result['route_geometry']
+'LINESTRING (21.056616 42.004088 0,21.056629 42.004078 0,21.056937 42.003885 0,
+(...)
+,20.957376 41.529222 0,20.957172 41.528817 0,20.957466 41.528699 0)'
+```
+
 ### table
 A simple wrapping function to fetch the matrix computed by OSRM as a dataframe (or as a numpy array) :
 ```
@@ -50,18 +66,57 @@ name4  158.4  137.6   99.8    0.0   49.4
 name5  115.4   94.6   65.6   48.8    0.0
 ```
 
-### simple_viaroute
-Return the original JSON reponse from OSRM (with optionnaly the geometry decoded in WKT or WKB)
+### table_OD
+Function to get a time matrix (in minutes) between different origins and destinations (N:M) as a DataFrame.
+The maximum size of matrix can be set when launching osrm-routed (for example 1000):
 ```
-import osrm
-result = osrm.simple_viaroute([21.0566163803209,42.004088575972],
-							  [20.9574645547597, 41.5286973392856], output='WKT')
+./osrm-routed file.osrm --max-table-size 1000
+```
+and the OSRM_max_table parameter have to be the same. If the size of the matrix exceed the *--max-table-size*
+the function will make the needed queries and reassemble the matrix.
+For example, let say i started my osrm instance with *--max-table-size 100* and i need a time matrix between
+a group of 3 locations and a group of 105 location :
+```
+In [27]: print('Nb origins : {}\nNb destinations : {}'.format(len(listOrigins), len(listDest)))
+Nb origins : 3
+Nb destinations : 105
 
-result['route_summary']['total_distance']
-76271
+In [28]: %time df_result = osrm.table_OD(listDest, nameDest, listOrigins, nameOrigins, OSRM_max_table=100)
+CPU times: user 200 ms, sys: 0 ns, total: 200 ms
+Wall time: 555 ms
 
-result['route_geometry']
-'LINESTRING (21.056616 42.004088 0,21.056629 42.004078 0,21.056937 42.003885 0,
-(...)
-,20.957376 41.529222 0,20.957172 41.528817 0,20.957466 41.528699 0)'
+In [29]: df_result
+Out[29]: 
+          Name1  Name3  Name4  Name5  Name6  Name7  Name8  Name9  Name10  \
+NAME_ABC   33.5   52.0   61.4  161.3  126.9  118.2  200.1   95.0   173.9   
+NAME_EFG   59.1   77.6   50.6  150.5  116.1  143.8  225.7  120.6   199.5   
+NAME_IJK   93.9  112.3   23.7   97.4   82.7  136.9  244.8  143.8   200.1   
+
+          Name11   ...     Name126  Name127  Name128  Name129  Name130  \
+NAME_ABC   151.4   ...        96.3    173.9    151.4    148.4    162.0   
+NAME_EFG   177.0   ...       121.9    199.5    177.0    174.0    187.6   
+NAME_IJK   170.1   ...       143.8    200.1    170.1    193.1    162.5   
+
+          Name131  Name132  Name133  Name137  Name139  
+NAME_ABC    127.6    135.0     88.8     97.3    113.7  
+NAME_EFG    116.7    101.9     54.8     86.5    102.9  
+NAME_IJK     63.6     71.0    112.7     33.4     49.8  
+
+[3 rows x 105 columns]
+```
+The result is the same, but would have been computed quicker with an appropirate *--max-table-size* 
+and the according *OSRM_max_table* parameter :
+```
+In [30]: %time df_result2 = osrm.table_OD(listDest, nameDest, listOrigins, nameOrigins, OSRM_max_table=1000)
+CPU times: user 8 ms, sys: 4 ms, total: 12 ms
+Wall time: 167 ms
+
+In [31]: from pandas.util.testing import assert_frame_equal
+
+In [32]: assert_frame_equal(df_result, df_result2)
+
+In [33]: df_result.equals(df_result2)
+Out[33]: True
+
+
 ```
