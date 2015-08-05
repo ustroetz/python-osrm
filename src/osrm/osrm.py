@@ -235,9 +235,9 @@ def table_OD(list_coordsO, list_idsO, list_coordsD, list_idsD,
         gpd_ids = list(chunk(list_ids, OSRM_max_table//2))
         df = DataFrame(index=list_ids, columns=list_ids, dtype=float)
         for lcoord, lid in zip(mat_range2d(gpd_coords), mat_range2d(gpd_ids)):
-            df = df.combine_first(table(list(lcoord), list(lid)))
+            df = df.combine_first(table(list(lcoord), list(lid), host=host))
     else:
-        df = table(list_coords, list_ids)
+        df = table(list_coords, list_ids, host=host)
 
     try:
         return df[list_idsO].filter(list_idsD, axis=0)
