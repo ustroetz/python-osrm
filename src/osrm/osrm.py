@@ -63,7 +63,7 @@ def simple_viaroute(coord_origin, coord_dest, alt=False,
         print('Unknow \'output\' parameter')
         return -1
 
-    url = ('{}/viaroute?loc={}&loc={}&instructions=false',
+    url = ('{}/viaroute?loc={}&loc={}&instructions=false'
            '&alt=false').format(host,
                                 str(coord_origin[1])+','+str(coord_origin[0]),
                                 str(coord_dest[1])+','+str(coord_dest[0]))
