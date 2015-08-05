@@ -18,7 +18,7 @@ python setup.py install
 ## Usage
 
 ### match
-```
+```python
 from osrm import osrm.match as match
 
 points = [([-33.45017046193167,-70.65281867980957], 0),
@@ -30,7 +30,7 @@ print match(points, host='http://localhost:5000', geometry=True,gps_precision=-1
 
 ### simple_viaroute
 Return the original JSON reponse from OSRM (with optionnaly the geometry decoded in WKT or WKB)
-```
+```python
 import osrm
 result = osrm.simple_viaroute([21.0566163803209,42.004088575972],
 							  [20.9574645547597, 41.5286973392856], output='WKT')
@@ -46,7 +46,7 @@ result['route_geometry']
 
 ### table
 A simple wrapping function to fetch the matrix computed by OSRM as a dataframe (or as a numpy array) :
-```
+```python
 list_coord = [[21.0566163803209, 42.004088575972],
               [21.3856064050746, 42.0094518118189],
               [20.9574645547597, 41.5286973392856],
@@ -72,16 +72,17 @@ The maximum size of matrix can be set when launching osrm-routed (for example 10
 ```
 ./osrm-routed file.osrm --max-table-size 1000
 ```
-and the OSRM_max_table parameter have to be the same. If the size of the matrix exceed the *--max-table-size*
+and the `OSRM_max_table` parameter have to be the same. If the size of the matrix exceed the `--max-table-size`
 the function will make the needed queries and reassemble the matrix.
-For example, let say i started my osrm instance with *--max-table-size 100* and i need a time matrix between
+For example, let say i started my osrm instance with `--max-table-size 100` and i need a time matrix between
 a group of 3 locations and a group of 105 location :
-```
+```python
 In [27]: print('Nb origins : {}\nNb destinations : {}'.format(len(listOrigins), len(listDest)))
 Nb origins : 3
 Nb destinations : 105
 
-In [28]: %time df_result = osrm.table_OD(listDest, nameDest, listOrigins, nameOrigins, OSRM_max_table=100)
+In [28]: %time df_result = osrm.table_OD(listDest, nameDest,
+					 listOrigins, nameOrigins, OSRM_max_table=100)
 CPU times: user 200 ms, sys: 0 ns, total: 200 ms
 Wall time: 555 ms
 
@@ -104,10 +105,11 @@ NAME_IJK     63.6     71.0    112.7     33.4     49.8
 
 [3 rows x 105 columns]
 ```
-The result is the same, but would have been computed quicker with an appropirate *--max-table-size* 
-and the according *OSRM_max_table* parameter :
-```
-In [30]: %time df_result2 = osrm.table_OD(listDest, nameDest, listOrigins, nameOrigins, OSRM_max_table=1000)
+The result is the same, but would have been computed quicker with an appropriate `--max-table-size` 
+and the according `OSRM_max_table` parameter :
+```python
+In [30]: %time df_result2 = osrm.table_OD(listDest, nameDest,
+					  listOrigins, nameOrigins, OSRM_max_table=1000)
 CPU times: user 8 ms, sys: 4 ms, total: 12 ms
 Wall time: 167 ms
 
@@ -117,6 +119,4 @@ In [32]: assert_frame_equal(df_result, df_result2)
 
 In [33]: df_result.equals(df_result2)
 Out[33]: True
-
-
 ```
