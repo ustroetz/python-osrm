@@ -29,8 +29,37 @@ def match(points, host='http://localhost:5000', geometry=True,
     return r_json
 
 
+def decode_geom(encoded_polyline):
+    """
+    Function decoding an encoded polyline (with 'encoded polyline
+    algorithme') and returning an osgeo.ogr.Geometry object
+    Params:
+    encoded_polyline: str
+        The encoded string to decode
+    """
+    epa_dec = PolylineCodec().decode(encoded_polyline)
+    fausse_liste = str(epa_dec)
+    ma_ligne = Geometry(2)
+    lineAddPts = ma_ligne.AddPoint_2D
+
+    # List of points coordinates :
+    lat, long = [], []
+    latAppd, longAppd = lat.append, long.append
+    valueliste = fausse_liste[1:len(fausse_liste) - 1].split(",")
+    for i in valueliste:
+        if '(' in i:
+            latAppd(float(i[i.find('(') + 1:])/10)
+        elif ')' in i:
+            longAppd(float(i[i.find(' ') + 1:len(i) - 1])/10)
+
+    for coord in zip(long, lat):
+        lineAddPts(coord[0], coord[1])
+
+    return ma_ligne
+
+
 def simple_viaroute(coord_origin, coord_dest, alt=False,
-                    output='raw', host='http://localhost:5000'):
+                    output='raw', host='http://localhost:5000', z=None):
     """
     Function wrapping OSRM 'viaroute' function and returning the JSON reponse
     with the route_geometry decoded (in WKT or WKB) if needed.
@@ -45,6 +74,8 @@ def simple_viaroute(coord_origin, coord_dest, alt=False,
         Define the type of output
     host: str, default 'http://localhost:5000'
         Url and port of the OSRM instance (no final bakslash)
+    z: int, default None (None = parameter not passed to OSRM)
+        The zoom level used for compressing the route
 
     Output:
     - if 'raw' : the original json returned by OSRM
@@ -64,40 +95,37 @@ def simple_viaroute(coord_origin, coord_dest, alt=False,
         return -1
 
     url = ('{}/viaroute?loc={}&loc={}&instructions=false'
-           '&alt=false').format(host,
-                                str(coord_origin[1])+','+str(coord_origin[0]),
-                                str(coord_dest[1])+','+str(coord_dest[0]))
-    try:  # Querying the OSRM local instance..
+           '&alt={}').format(host,
+                             str(coord_origin[1])+','+str(coord_origin[0]),
+                             str(coord_dest[1])+','+str(coord_dest[0]),
+                             str(alt).lower())
+    try:  # Dont use 'z' if not renseigned or if bad renseigned
+        if 0 < int(z) < 19:
+            url = ''.join([url, '&z={}'.format(z)])
+    except:
+        pass
+
+    try:  # Querying the OSRM instance..
         rep = requests.get(url)
         parsed_json = rep.json()
-    except:
-        print('Error while contacting OSRM instance')
+    except Exception as err:
+        print('Error while contacting OSRM instance : \n{}'.format(err))
         return -1
     if parsed_json['status'] is not 207:
         if output == 3:
             return parsed_json
         else:
-            epa_dec = PolylineCodec().decode(parsed_json['route_geometry'])
-            fausse_liste = str(epa_dec)
-            ma_ligne = Geometry(2)
-            lineAddPts = ma_ligne.AddPoint
-
-            # List of points coordinates :
-            lat, long = [], []
-            latAppd, longAppd = lat.append, long.append
-            valueliste = fausse_liste[1:len(fausse_liste) - 1].split(",")
-            for i in valueliste:
-                if '(' in i:
-                    latAppd(float(i[i.find('(') + 1:])/10)
-                elif ')' in i:
-                    longAppd(float(i[i.find(' ') + 1:len(i) - 1])/10)
-            for coord in zip(long, lat):
-                lineAddPts(coord[0], coord[1])
+            ogr_line = decode_geom(parsed_json['route_geometry'])
+            if parsed_json['found_alternative']:
+                list_alt = [decode_geom(altgeom).ExportToWkb() if output == 2
+                            else decode_geom(altgeom).ExportToWkt() for altgeom
+                            in parsed_json['alternative_geometries']]
+                parsed_json['alternative_geometries'] = list_alt
             if output == 2:
-                parsed_json['route_geometry'] = ma_ligne.ExportToWkb()
+                parsed_json['route_geometry'] = ogr_line.ExportToWkb()
                 return parsed_json
             elif output == 1:
-                parsed_json['route_geometry'] = ma_ligne.ExportToWkt()
+                parsed_json['route_geometry'] = ogr_line.ExportToWkt()
                 return parsed_json
     else:
         print('Error - OSRM status : {} \n Full json reponse : {}'.format(
@@ -154,12 +182,17 @@ def table(list_coords, list_ids, output='df',
     try:  # Querying the OSRM local instance
         rep = requests.get(query)
         parsed_json = rep.json()
-    except:
-        print('Error while contacting OSRM instance')
+    except Exception as err:
+        print('Error while contacting OSRM instance : \n{}'.format(err))
         return -1
 
     if 'distance_table' in parsed_json.keys():  # Preparing the result matrix
         mat = np.array(parsed_json['distance_table'])
+        if len(mat) < len(list_coords):
+            print(('The array returned by OSRM is smaller to the size of the '
+                   'array requested\nOSRM parameter --max-table-size should be'
+                   ' increased or function osrm.table_OD(...) should be used'))
+            return -1
         mat = mat/(10*60)  # Conversion in minutes
         mat = mat.round(1)
         mat[mat == 3579139.4] = np.NaN  # Flag the errors with NaN
@@ -221,7 +254,7 @@ def table_OD(list_coordsO, list_idsO, list_coordsD, list_idsD,
             (or NaN when OSRM encounter an error to compute a route)
 
         -1 or an empty DataFrame is return in case of any other error
-            (bad 'output' parameter, wrong list of coords/ids, unknow host,
+            (wrong list of coords/ids, unknow host,
             wrong response from the host, etc.)
     """
     if list_coordsO == list_coordsD and list_idsO == list_idsD:
@@ -241,5 +274,52 @@ def table_OD(list_coordsO, list_idsO, list_coordsD, list_idsD,
 
     try:
         return df[list_idsO].filter(list_idsD, axis=0)
-    except:
+    except Exception as err:
+        print(err)
+        return -1
+
+
+def locate(coord, host='http://localhost:5000'):
+    """
+    Useless function wrapping OSRM 'locate' function,
+    returning the reponse in JSON
+    Params:
+    coord: list of two float
+        [x ,y] where x is longitude and y is latitude
+    host: str, default 'http://localhost:5000'
+        Url and port of the OSRM instance (no final bakslash)
+
+    Output:
+       The JSON returned by the OSRM instance
+    """
+    url = '{}/locate?loc={}'.format(host, str(coord[1])+','+str(coord[0]))
+    try:  # Querying the OSRM instance
+        rep = requests.get(url)
+        parsed_json = rep.json()
+        return parsed_json
+    except Exception as err:
+        print('Error while contacting OSRM instance : \n{}'.format(err))
+        return -1
+
+
+def nearest(coord, host='http://localhost:5000'):
+    """
+    Useless function wrapping OSRM 'nearest' function,
+    returning the reponse in JSON
+    Params:
+    coord: list of two float
+        [x ,y] where x is longitude and y is latitude
+    host: str, default 'http://localhost:5000'
+        Url and port of the OSRM instance (no final bakslash)
+
+    Output:
+        The JSON returned by the OSRM instance
+    """
+    url = '{}/nearest?loc={}'.format(host, str(coord[1])+','+str(coord[0]))
+    try:  # Querying the OSRM local instance
+        rep = requests.get(url)
+        parsed_json = rep.json()
+        return parsed_json
+    except Exception as err:
+        print('Error while contacting OSRM instance : \n{}'.format(err))
         return -1
