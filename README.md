@@ -1,7 +1,7 @@
 
 # python-osrm
-A Python wrapper around the [OSRM API](https://github.com/Project-OSRM/osrm-backend/wiki/Server-api)
-
+A Python wrapper around the [OSRM API](https://github.com/Project-OSRM/osrm-backend/wiki/Server-api),
+providing an easy access to *viaroute*, *locate*, *nearest*, *match* and *table*.
 ## Install
 ```
 git clone git@github.com:ustroetz/python-osrm.git
@@ -31,14 +31,15 @@ print match(points, host='http://localhost:5000', geometry=True,gps_precision=-1
 ### simple_viaroute
 Return the original JSON reponse from OSRM (with optionnaly the geometry decoded in WKT or WKB)
 ```python
-import osrm
-result = osrm.simple_viaroute([21.0566163803209,42.004088575972],
+In [23]: import osrm
+In [24]: result = osrm.simple_viaroute([21.0566163803209,42.004088575972],
 							  [20.9574645547597, 41.5286973392856], output='WKT')
 
-result['route_summary']['total_distance']
-76271
+In [25]: result['route_summary']['total_distance']
+Out[25]: 76271
 
-result['route_geometry']
+In [26]: result['route_geometry']
+Out[26]:
 'LINESTRING (21.056616 42.004088 0,21.056629 42.004078 0,21.056937 42.003885 0,
 (...)
 ,20.957376 41.529222 0,20.957172 41.528817 0,20.957466 41.528699 0)'
@@ -47,17 +48,20 @@ result['route_geometry']
 ### table
 A simple wrapping function to fetch the matrix computed by OSRM as a dataframe (or as a numpy array) :
 ```python
-list_coord = [[21.0566163803209, 42.004088575972],
-              [21.3856064050746, 42.0094518118189],
-              [20.9574645547597, 41.5286973392856],
-              [21.1477394809847, 41.0691482795275],
-              [21.5506463080973, 41.3532256406286]]
+In [28]: import osrm
 
-list_id = ['name1', 'name2', 'name3', 'name4', 'name5']
+In [29]: list_coord = [[21.0566163803209, 42.004088575972],
+    ...:               [21.3856064050746, 42.0094518118189],
+    ...:               [20.9574645547597, 41.5286973392856],
+    ...:               [21.1477394809847, 41.0691482795275],
+    ...:               [21.5506463080973, 41.3532256406286]]
 
-time_matrix = osrm.table(list_coord, list_id, output='dataframe', host='http://localhost:5000')
+In [30]: list_id = ['name1', 'name2', 'name3', 'name4', 'name5']
 
-print(time_matrix)  # now in minutes
+In [31]: time_matrix = osrm.table(list_coord, list_id, output='dataframe', host='http://localhost:5000')
+
+In [32]: time_matrix  # Now in minutes
+Out[32]: 
        name1  name2  name3  name4  name5
 name1    0.0   25.7   69.8  169.7  126.8
 name2   26.1    0.0   88.1  149.4  106.3
@@ -119,4 +123,27 @@ In [32]: assert_frame_equal(df_result, df_result2)
 
 In [33]: df_result.equals(df_result2)
 Out[33]: True
+```
+
+### nearest
+
+```python
+In [22]: import osrm
+
+In [23]: res = osrm.nearest([22.1021271845936,	41.5078687005805])
+
+In [24]: res
+Out[24]: {'mapped_coordinate': [41.50787, 22.102127], 'name': 'R1103', 'status': 0}
+```
+
+### locate
+
+```python
+In [25]: import osrm
+
+In [26]: res = osrm.locate([20.9574645547597, 41.5286973392856])
+
+In [27]: res
+Out[27]: {'mapped_coordinate': [41.528706, 20.957441], 'status': 0}
+
 ```
