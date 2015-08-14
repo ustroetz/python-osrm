@@ -5,6 +5,9 @@ from pandas import DataFrame
 import numpy as np
 from itertools import islice
 
+__all__ = ['match', 'simple_viaroute', 'table', 'table_OD',
+           'nearest', 'locate', 'decode_geom']
+
 
 def match(points, host='http://localhost:5000', geometry=True,
           gps_precision=-1, matching_beta=-1, decode_polyline=True):

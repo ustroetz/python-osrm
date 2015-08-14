@@ -1,6 +1,7 @@
 
 # python-osrm
-A Python wrapper around the [OSRM API](https://github.com/Project-OSRM/osrm-backend/wiki/Server-api).
+A Python wrapper around the [OSRM API](https://github.com/Project-OSRM/osrm-backend/wiki/Server-api),
+providing an easy access to *viaroute*, *locate*, *nearest*, *match* and *table*.
 ## Install
 ```
 git clone git@github.com:ustroetz/python-osrm.git
@@ -59,7 +60,7 @@ In [30]: list_id = ['name1', 'name2', 'name3', 'name4', 'name5']
 
 In [31]: time_matrix = osrm.table(list_coord, list_id, output='dataframe', host='http://localhost:5000')
 
-In [32]: time_matrix  # Now in minutes
+In [32]: time_matrix
 Out[32]: 
        name1  name2  name3  name4  name5
 name1    0.0   25.7   69.8  169.7  126.8

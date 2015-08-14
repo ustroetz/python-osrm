@@ -1,16 +1,16 @@
 from setuptools import setup
+import osrm
 
 setup(
     name='osrm',
-    version='0.11',
+    version=osrm.__version__,
     author="Ulric Stroetz, mthh",
     author_email="ustroetz@gmail.com",
-    package_dir={'': 'src'},
     packages=['osrm'],
     install_requires=[
-      'requests',
-      'polyline',
-      'GDAL',
-      'numpy',
-      'pandas']
-      )
+        'requests',
+        'polyline',
+        'GDAL',
+        'numpy',
+        'pandas']
+    )
