@@ -1,6 +1,9 @@
 import requests
 from polyline.codec import PolylineCodec
-from osgeo.ogr import Geometry
+try:
+    from osgeo.ogr import Geometry
+except:
+    from ogr import Geometry
 from pandas import DataFrame
 import numpy as np
 from itertools import islice
@@ -190,7 +193,7 @@ def table(list_coords, list_ids, output='df',
         return -1
 
     if 'distance_table' in parsed_json.keys():  # Preparing the result matrix
-        mat = np.array(parsed_json['distance_table'])
+        mat = np.array(parsed_json['distance_table'], dtype='float64')
         if len(mat) < len(list_coords):
             print(('The array returned by OSRM is smaller to the size of the '
                    'array requested\nOSRM parameter --max-table-size should be'
