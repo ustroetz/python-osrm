@@ -1,33 +1,56 @@
-import requests
+import numpy as np
 from polyline.codec import PolylineCodec
+from pandas import DataFrame
+from itertools import islice
+
+try:
+    from urllib.request import urlopen
+except:
+    from urllib2 import urlopen
+
 try:
     from osgeo.ogr import Geometry
 except:
     from ogr import Geometry
-from pandas import DataFrame
-import numpy as np
-from itertools import islice
 
-__all__ = ['match', 'simple_viaroute', 'table', 'table_OD',
-           'nearest', 'locate', 'decode_geom']
+try:
+    import ujson as json
+except:
+    import json
+
+__all__ = ['match', 'simple_viaroute', 'light_table', 'table', 'table_OD',
+           'nearest', 'locate', 'decode_geom', 'get_error_id']
+
+
+def check_host(host):
+    """ Helper function to get the hostname in desired format """
+    if not ('http' in host and '//' in host) and host[len(host)-1] == '/':
+        return ''.join(['http://', host[:len(host)-1]])
+    elif not ('http' in host and '//' in host):
+        return ''.join(['http://', host])
+    elif host[len(host)-1] == '/':
+        return host[:len(host)-1]
+    else:
+        return host
 
 
 def match(points, host='http://localhost:5000', geometry=True,
           gps_precision=-1, matching_beta=-1, decode_polyline=True):
+    host = check_host(host)
     url = ''.join([host, '/match?'])
     for loc, t in points:
-        url += 'loc=' + str(loc[0]) + ',' + str(loc[1]) + '&t=' + str(t) + '&'
+        url += 'loc=' + str(loc[1]) + ',' + str(loc[0]) + '&t=' + str(t) + '&'
     url = url[:-1]
     url = ''.join([url, '&geometry=', str(geometry).lower(), '&gps_precision=',
                    str(gps_precision), '&matching_beta=', str(matching_beta)])
-    r = requests.get(url)
-    r_json = r.json()
+    r = urlopen(url)
+    r_json = json.loads(r.read().decode('utf-8'))
     if decode_polyline:
         if 'matchings' in r_json.keys():
-            for i, matching in enumerate(r_json['matchings']):
+            for i, _ in enumerate(r_json['matchings']):
                 geom_encoded = r_json["matchings"][i]["geometry"]
-                geom_decoded = [[point[0] / 10.0,
-                                 point[1] / 10.0] for point
+                geom_decoded = [[point[1] / 10.0,
+                                 point[0] / 10.0] for point
                                 in PolylineCodec().decode(geom_encoded)]
                 r_json["matchings"][i]["geometry"] = geom_decoded
         else:
@@ -38,29 +61,17 @@ def match(points, host='http://localhost:5000', geometry=True,
 def decode_geom(encoded_polyline):
     """
     Function decoding an encoded polyline (with 'encoded polyline
-    algorithme') and returning an osgeo.ogr.Geometry object
+    algorithm') and returning an ogr.Geometry object
+
     Params:
+
     encoded_polyline: str
         The encoded string to decode
     """
-    epa_dec = PolylineCodec().decode(encoded_polyline)
-    fausse_liste = str(epa_dec)
     ma_ligne = Geometry(2)
     lineAddPts = ma_ligne.AddPoint_2D
-
-    # List of points coordinates :
-    lat, long = [], []
-    latAppd, longAppd = lat.append, long.append
-    valueliste = fausse_liste[1:len(fausse_liste) - 1].split(",")
-    for i in valueliste:
-        if '(' in i:
-            latAppd(float(i[i.find('(') + 1:])/10)
-        elif ')' in i:
-            longAppd(float(i[i.find(' ') + 1:len(i) - 1])/10)
-
-    for coord in zip(long, lat):
-        lineAddPts(coord[0], coord[1])
-
+    for coord in PolylineCodec().decode(encoded_polyline):
+        lineAddPts(coord[1], coord[0])
     return ma_ligne
 
 
@@ -69,11 +80,13 @@ def simple_viaroute(coord_origin, coord_dest, alt=False,
     """
     Function wrapping OSRM 'viaroute' function and returning the JSON reponse
     with the route_geometry decoded (in WKT or WKB) if needed.
+
     Params:
-    coord_origine: list of two float
-        [x ,y] where x is longitude and y is latitude
-    coord_dest: list of two float
-        [x ,y] where x is longitude and y is latitude
+
+    coord_origine: list/tuple of two floats
+        (x ,y) where x is longitude and y is latitude
+    coord_dest: list/tuple of two floats
+        (x ,y) where x is longitude and y is latitude
     alt: boolean, default False
         Query (and resolve geometry if asked) for alternatives routes
     output: str, default 'wkt'
@@ -99,7 +112,7 @@ def simple_viaroute(coord_origin, coord_dest, alt=False,
     else:
         print('Unknow \'output\' parameter')
         return -1
-
+    host = check_host(host)
     url = ('{}/viaroute?loc={}&loc={}&instructions=false'
            '&alt={}').format(host,
                              str(coord_origin[1])+','+str(coord_origin[0]),
@@ -112,8 +125,8 @@ def simple_viaroute(coord_origin, coord_dest, alt=False,
         pass
 
     try:  # Querying the OSRM instance..
-        rep = requests.get(url)
-        parsed_json = rep.json()
+        rep = urlopen(url)
+        parsed_json = json.loads(rep.read().decode('utf-8'))
     except Exception as err:
         print('Error while contacting OSRM instance : \n{}'.format(err))
         return -1
@@ -139,17 +152,69 @@ def simple_viaroute(coord_origin, coord_dest, alt=False,
         return -1
 
 
+def light_table(list_coords, host='http://localhost:5000'):
+    """
+    Function wrapping OSRM 'table' function in order to get a matrix of
+    time distance as a numpy array
+
+    Params :
+
+        list_coords: list
+            A list of coord as (x, y) , like :
+                 list_coords = [(21.3224, 45.2358),
+                                (21.3856, 42.0094),
+                                (20.9574, 41.5286)] (coords have to be float)
+        host: str, default 'http://localhost:5000'
+            Url and port of the OSRM instance (no final bakslash)
+    Output:
+        a numpy array containing the time in tenth of seconds (where 2147483647
+            correspond to a not-found route)
+
+        -1 is return in case of any other error (bad 'output' parameter,
+            wrong list of coords/ids, unknow host,
+            wrong response from the host, etc.)
+    """
+    host = check_host(host)
+    query = [host, '/table?loc=']
+    for coord in list_coords:  # Preparing the query
+        tmp = ''.join([str(coord[1]), ',', str(coord[0]), '&loc='])
+        query.append(tmp)
+    query = (''.join(query))[:-5]
+
+    try:  # Querying the OSRM local instance
+        rep = urlopen(query)
+        parsed_json = json.loads(rep.read().decode('utf-8'))
+    except Exception as err:
+        print('Error while contacting OSRM instance : \n{}'.format(err))
+        return -1
+
+    if 'distance_table' in parsed_json.keys():  # Preparing the result matrix
+        mat = np.array(parsed_json['distance_table'], dtype='int32')
+        if len(mat) < len(list_coords):
+            print('The array returned by OSRM is smaller than the array '
+                  'requested\nOSRM parameter --max-table-size should be'
+                  ' increased or function osrm.table_OD(...) should be used')
+            return -1
+        else:
+            return mat
+    else:
+        print('No distance table return by OSRM instance')
+        return -1
+
+
 def table(list_coords, list_ids, output='df',
           host='http://localhost:5000'):
     """
     Function wrapping OSRM 'table' function in order to get a matrix of
     time distance as a numpy array or as a DataFrame
+
     Params :
+
         list_coords: list
-            A list of coord as [x, y] , like :
-                 list_coords = [[21.3224, 45.2358],
-                                [21.3856, 42.0094],
-                                [20.9574, 41.5286]] (coords have to be float)
+            A list of coord as (x, y) , like :
+                 list_coords = [(21.3224, 45.2358),
+                                (21.3856, 42.0094),
+                                (20.9574, 41.5286)] (coords have to be float)
         list_ids: list
             A list of the corresponding unique id, like :
                      list_ids = ['name1',
@@ -179,15 +244,16 @@ def table(list_coords, list_ids, output='df',
     else:
         print('Unknow output parameter')
         return -1
-
+    host = check_host(host)
     query = [host, '/table?loc=']
-    for coord, uid in zip(list_coords, list_ids):  # Preparing the query
+    for coord in list_coords:  # Preparing the query
         tmp = ''.join([str(coord[1]), ',', str(coord[0]), '&loc='])
         query.append(tmp)
     query = (''.join(query))[:-5]
+
     try:  # Querying the OSRM local instance
-        rep = requests.get(query)
-        parsed_json = rep.json()
+        rep = urlopen(query)
+        parsed_json = json.loads(rep.read().decode('utf-8'))
     except Exception as err:
         print('Error while contacting OSRM instance : \n{}'.format(err))
         return -1
@@ -195,9 +261,9 @@ def table(list_coords, list_ids, output='df',
     if 'distance_table' in parsed_json.keys():  # Preparing the result matrix
         mat = np.array(parsed_json['distance_table'], dtype='float64')
         if len(mat) < len(list_coords):
-            print(('The array returned by OSRM is smaller to the size of the '
-                   'array requested\nOSRM parameter --max-table-size should be'
-                   ' increased or function osrm.table_OD(...) should be used'))
+            print('The array returned by OSRM is smaller than the array '
+                  'requested\nOSRM parameter --max-table-size should be'
+                  ' increased or function osrm.table_OD(...) should be used')
             return -1
         mat = mat/(10*60)  # Conversion in minutes
         mat = mat.round(1)
@@ -208,7 +274,7 @@ def table(list_coords, list_ids, output='df',
             df = DataFrame(mat, index=list_ids, columns=list_ids, dtype=float)
             return df
     else:
-        print('No distance table return by OSRM local instance')
+        print('No distance table return by OSRM instance')
         return -1
 
 
@@ -226,24 +292,31 @@ def mat_range2d(l):
                 yield i+j
 
 
+def get_error_id(df):
+    return [idx for idx in df.index
+            if len(df.ix[idx].index[df[idx].apply(np.isnan)]) > (len(df)/2-1)]
+
+
 def table_OD(list_coordsO, list_idsO, list_coordsD, list_idsD,
              OSRM_max_table=100, host='http://localhost:5000'):
     """
     Function wrapping OSRM 'table' function in order to get a matrix of
     time distance between different origins and destinations (N:M)
+
     Params :
+
         list_coordsO: list
-            A list of coord as [x, y] for the origins, like :
-                 list_coords = [[21.3224, 45.2358],
-                                [21.3856, 42.0094],
-                                [20.9574, 41.5286]] (coords have to be float)
+            A list of coords as (x, y) for the origins, like :
+                 list_coords = [(21.3224, 45.2358),
+                                (21.3856, 42.0094),
+                                (20.9574, 41.5286)] (coords have to be float)
         list_idsO: list
-            A list of the corresponding unique id for the origins, like :
+            A list of the corresponding unique ids for the origins, like :
                      list_ids = ['name1',
                                  'name2',
                                  'name3'] (id can be str, int or float)
         list_coordsD: list
-            A list of coord as [x, y] for the destinations (same kind as the
+            A list of coords as (x, y) for the destinations (same kind as the
             origins)
         list_idsD: list
             A list of the corresponding unique id for the destinations (same
@@ -289,19 +362,22 @@ def locate(coord, host='http://localhost:5000'):
     """
     Useless function wrapping OSRM 'locate' function,
     returning the reponse in JSON
+
     Params:
-    coord: list of two float
-        [x ,y] where x is longitude and y is latitude
+
+    coord: list/tuple of two floats
+        (x ,y) where x is longitude and y is latitude
     host: str, default 'http://localhost:5000'
         Url and port of the OSRM instance (no final bakslash)
 
     Output:
        The JSON returned by the OSRM instance
     """
+    host = check_host(host)
     url = '{}/locate?loc={}'.format(host, str(coord[1])+','+str(coord[0]))
     try:  # Querying the OSRM instance
-        rep = requests.get(url)
-        parsed_json = rep.json()
+        rep = urlopen(url)
+        parsed_json = json.loads(rep.read().decode('utf-8'))
         return parsed_json
     except Exception as err:
         print('Error while contacting OSRM instance : \n{}'.format(err))
@@ -313,18 +389,20 @@ def nearest(coord, host='http://localhost:5000'):
     Useless function wrapping OSRM 'nearest' function,
     returning the reponse in JSON
     Params:
-    coord: list of two float
-        [x ,y] where x is longitude and y is latitude
+
+    coord: list/tuple of two floats
+        (x ,y) where x is longitude and y is latitude
     host: str, default 'http://localhost:5000'
         Url and port of the OSRM instance (no final bakslash)
 
     Output:
         The JSON returned by the OSRM instance
     """
+    host = check_host(host)
     url = '{}/nearest?loc={}'.format(host, str(coord[1])+','+str(coord[0]))
     try:  # Querying the OSRM local instance
-        rep = requests.get(url)
-        parsed_json = rep.json()
+        rep = urlopen(url)
+        parsed_json = json.loads(rep.read().decode('utf-8'))
         return parsed_json
     except Exception as err:
         print('Error while contacting OSRM instance : \n{}'.format(err))
