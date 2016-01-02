@@ -71,9 +71,9 @@ def simple_viaroute(coord_origin, coord_dest, alt=False,
     with the route_geometry decoded (in WKT or WKB) if needed.
     Params:
     coord_origine: list of two float
-        [x ,y] where x is longitude and y is latitude
+        [x ,y] where x is latitude and y is longitude
     coord_dest: list of two float
-        [x ,y] where x is longitude and y is latitude
+        [x ,y] where x is latitude and y is longitude
     alt: boolean, default False
         Query (and resolve geometry if asked) for alternatives routes
     output: str, default 'wkt'
@@ -102,8 +102,8 @@ def simple_viaroute(coord_origin, coord_dest, alt=False,
 
     url = ('{}/viaroute?loc={}&loc={}&instructions=false'
            '&alt={}').format(host,
-                             str(coord_origin[1])+','+str(coord_origin[0]),
-                             str(coord_dest[1])+','+str(coord_dest[0]),
+                             str(coord_origin[0])+','+str(coord_origin[1]),
+                             str(coord_dest[0])+','+str(coord_dest[1]),
                              str(alt).lower())
     try:  # Dont use 'z' if not renseigned or if bad renseigned
         if 0 < int(z) < 19:
