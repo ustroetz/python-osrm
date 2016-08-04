@@ -8,7 +8,6 @@ setup(
     author_email="ustroetz@gmail.com",
     packages=['osrm'],
     install_requires=[
-        'requests',
         'polyline',
         'GDAL',
         'numpy',
