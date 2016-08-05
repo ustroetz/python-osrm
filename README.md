@@ -19,23 +19,22 @@ python setup.py install
 
 ### match
 ```python
-import osrm
+In [17]: import osrm
 
-points = [([-33.45017046193167,-70.65281867980957], 0),
-          ([-33.45239047269638,-70.65300107002258], 5),
-          ([-33.453867464504555,-70.65277576446533], 7)]
+In [18]: points = [(-33.45017046193167,-70.65281867980957),
+          (-33.45239047269638,-70.65300107002258),
+          (-33.453867464504555,-70.65277576446533)]
 
-osrm.match(points, step=False, overview="simplified")
+In [19]: result = osrm.match(points, step=False, overview="simplified")
 ```
 
 ### route
 Return the original JSON reponse from OSRM (with optionnaly the geometry decoded in WKT or WKB)
 ```python
 In [23]: import osrm
-In [24]: result = osrm.simple_route([21.0566163803209,42.004088575972],
-						    [20.9574645547597, 41.5286973392856],
-                                    output='route', overview="full",
-                                    geometry='wkt')
+In [24]: result = osrm.simple_route(
+                      [21.0566163803209,42.004088575972], [20.9574645547597, 41.5286973392856],
+                      output='route', overview="full", geometry='wkt')
 
 In [25]: result['distance']
 Out[25]: 76271

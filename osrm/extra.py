@@ -10,6 +10,7 @@ from matplotlib.mlab import griddata
 from math import ceil
 
 from .core import table
+from . import RequestConfig
 
 def countour_poly(gdf, field_name, levels='auto'):
     """
@@ -181,7 +182,7 @@ def make_grid(gdf, height):
 
 
 def access_isocrone(point_origin, precision=0.03, size=0.4, n_breaks=8,
-                    host='http://localhost:5000', profile="driving", version="v1"):
+                    url_config=RequestConfig):
     """
     Parameters
     ----------
@@ -210,9 +211,8 @@ def access_isocrone(point_origin, precision=0.03, size=0.4, n_breaks=8,
         return -1
     coords_grid = \
         [(i.coords.xy[0][0], i.coords.xy[1][0]) for i in grid.geometry.centroid]
-    req_conf = {"server": host, "profile": profile, "version": version}
     times, new_pt_origin, pts_dest = \
-        table([point_origin], coords_grid, url_config=req_conf)
+        table([point_origin], coords_grid, url_config)
     times = (times[0] / 60.0).round(2)  # Round values in minutes
     geoms, values = [], []
     for time, coord in zip(times, pts_dest):
