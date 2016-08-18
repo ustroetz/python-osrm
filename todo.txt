@@ -2,4 +2,5 @@ TODO:
 - Change the readme according to the new code
 - Allow to use other OSRM params (like hints, bearing, etc.)
 - Write other tests
+- Support python 2...
 - Etc.

@@ -12,6 +12,7 @@ from math import ceil
 from .core import table
 from . import RequestConfig
 
+
 def countour_poly(gdf, field_name, levels='auto'):
     """
     Parameters
@@ -126,15 +127,16 @@ def isopoly_to_gdf(collec_poly, field_name=None, levels=None):
         if not field_name:
             field_name = 'value'
         return GeoDataFrame(geometry=polygons,
-                                data=data, columns=[field_name])
+                            data=data,
+                            columns=[field_name])
     else:
         return GeoDataFrame(geometry=polygons)
+
 
 def make_grid(gdf, height):
     """
     Return a grid, based on the shape of *gdf* and on a *height* value (in
-    units of *gdf*). If cut=False, the grid will not be intersected with *gdf*
-    (i.e it makes a grid on the bounding-box of *gdf*).
+    units of *gdf*).
     Parameters
     ----------
     gdf: GeoDataFrame
@@ -142,10 +144,6 @@ def make_grid(gdf, height):
     height: Integer
         The dimension (will be used as height and width) of the ceils to create,
         in units of *gdf*.
-    cut: Boolean, default True
-        Cut the grid to fit the shape of *gdf* (ceil partially covering it will
-        be truncated). If False, the returned grid will fit the bounding box
-        of *gdf*.
     Returns
     -------
     grid: GeoDataFrame
@@ -162,10 +160,10 @@ def make_grid(gdf, height):
     y_bottom_origin = ymax - height
 
     res_geoms = []
-    for countcols in range(cols):
+    for countcols in range(int(cols)):
         y_top = y_top_origin
         y_bottom = y_bottom_origin
-        for countrows in range(rows):
+        for countrows in range(int(rows)):
             res_geoms.append((
                 (x_left_origin, y_top), (x_right_origin, y_top),
                 (x_right_origin, y_bottom), (x_left_origin, y_bottom)
@@ -192,14 +190,13 @@ def access_isocrone(point_origin, precision=0.03, size=0.4, n_breaks=8,
 
     size: float
         Search radius (in degree).
-    host: string, default 'http://localhost:5000'
-        OSRM instance URL (no final backslash)
+    url_config:
+
+
     Return
     ------
     gdf_poly: GeoDataFrame
         The shape of the computed accessibility polygons.
-    grid: GeoDataFrame
-        The location and time of each used point.
     new_point_origin: 2-floats tuple
         The coord (x, y) of the origin point (could be the same as provided
         or have been slightly moved to be on a road).
