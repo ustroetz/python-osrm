@@ -2,6 +2,11 @@
 # python-osrm
 A Python wrapper around the [OSRM API](https://github.com/Project-OSRM/osrm-backend/wiki/Server-api),
 providing an easy access to *viaroute*, *locate*, *nearest*, *match* and *table*.
+  
+
+[![Build Status](https://travis-ci.org/mthh/python-osrm.svg?branch=master)](https://travis-ci.org/mthh/python-osrm)
+  
+
 ## Install
 ```
 git clone git@github.com:ustroetz/python-osrm.git

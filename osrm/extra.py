@@ -5,13 +5,14 @@
 import numpy as np
 from shapely.geometry import MultiPolygon, Polygon, Point
 from geopandas import GeoDataFrame, pd
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.mlab import griddata
 from math import ceil
 
 from .core import table
 from . import RequestConfig
-
 
 def countour_poly(gdf, field_name, levels='auto'):
     """
