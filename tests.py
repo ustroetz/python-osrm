@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 import unittest
-from unittest import mock
+try:
+    from unittest import mock
+except:
+    import mock
+
 from pandas import DataFrame
 import numpy
 

@@ -1,15 +1,19 @@
 from setuptools import setup
-import osrm
+#from osrm import __version__
 
 setup(
     name='osrm',
-    version=osrm.__version__,
+    version='0.11.1',
     author="Ulric Stroetz, mthh",
     author_email="ustroetz@gmail.com",
     packages=['osrm'],
+    test_suite="tests",
     install_requires=[
         'polyline',
         'GDAL',
         'numpy',
-        'pandas']
+        'pandas',
+        'geopandas',
+        'matplotlib',
+        'shapely']
     )

@@ -5,7 +5,7 @@ Python wrapper for osrm API v5
 Wrap OSRM services 'route', 'nearest', 'table', 'match' and 'trip'.
 Allow geometry decoding for 'viaroute', 'match' and 'trip' functions.
 """
-__version__ = '0.11-m'
+__version__ = '0.11.1'
 
 
 class DefaultRequestConfig:
@@ -34,5 +34,5 @@ class DefaultRequestConfig:
 
 RequestConfig = DefaultRequestConfig()
 
-from osrm.core import match, simple_route, nearest, table, trip, _chain
-from osrm.extra import access_isocrone
+from .core import match, simple_route, nearest, table, trip, _chain
+from .extra import access_isocrone

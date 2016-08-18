@@ -1,0 +1,33 @@
+language: python
+python:
+  - "3.4"
+  - "3.5"
+sudo: required
+dist: trusty
+cache:
+  directories:
+    - $GDALINST
+    - ~/.cache/pip
+env:
+  global:
+    - GDALINST=$HOME/gdalinstall
+    - GDALBUILD=$HOME/gdalbuild
+before_install:
+  - ./install_gdal.sh
+  - export PATH=$GDALINST/gdal-2.1.0/bin:$PATH
+  - export LD_LIBRARY_PATH=$GDALINST/gdal-2.1.0/lib:$LD_LIBRARY_PATH
+install:
+  - pip install --upgrade setuptools pip
+  - python setup.py install
+script:
+  - python setup.py test
+addons:
+  apt:
+    sources:
+      - deadsnakes
+    packages:
+      - python3.5
+      - libpython3.5-dev
+      - libgdal-dev
+      - libproj-dev
+      - python3-numpy

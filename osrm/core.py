@@ -13,11 +13,7 @@ try:
     from osgeo.ogr import Geometry
 except:
     from ogr import Geometry
-
-try:
-    import ujson as json
-except:
-    import json
+import json
 
 
 def _chain(*lists):
@@ -55,8 +51,8 @@ def match(points, steps=False, overview="simplified", geometry="polyline",
 
     url = [
         host, '/match/', url_config.version, '/', url_config.profile, '/',
-       ';'.join([','.join([str(coord[0]), str(coord[1])]) for coord in points]),
-       "?overview={}&steps={}&geometries={}"
+        ';'.join([','.join([str(coord[0]), str(coord[1])]) for coord in points]),
+        "?overview={}&steps={}&geometries={}"
            .format(overview, str(steps).lower(), geometry)
     ]
 
@@ -67,7 +63,7 @@ def match(points, steps=False, overview="simplified", geometry="polyline",
 
     r = urlopen("".join(url))
     r_json = json.loads(r.read().decode('utf-8'))
-    if not "code" in r_json or not "Ok" in r_json["code"]:
+    if "code" not in r_json or "Ok" not in r_json["code"]:
         if 'matchings' in r_json.keys():
             for i, _ in enumerate(r_json['matchings']):
                 geom_encoded = r_json["matchings"][i]["geometry"]
@@ -216,7 +212,8 @@ def table(coords_src, coords_dest=None, ids_origin=None, ids_dest=None,
         output = 3
 
     host = check_host(url_config.host)
-    url = ''.join([host, '/table/', url_config.version, '/', url_config.profile, '/'])
+    url = ''.join(
+        [host, '/table/', url_config.version, '/', url_config.profile, '/'])
 
     if not coords_dest:
         url = ''.join([
