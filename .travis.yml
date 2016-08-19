@@ -21,6 +21,7 @@ before_install:
   - export LD_LIBRARY_PATH=$GDALINST/gdal-2.1.0/lib:$LD_LIBRARY_PATH
 install:
   - pip install --upgrade setuptools pip mock
+  - pip install -r requirements.txt
   - python setup.py install
 script:
   - python setup.py test

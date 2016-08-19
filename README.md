@@ -15,9 +15,9 @@ python setup.py install
 ```
 # Requires
   * polyline
-  * requests
   * numpy
   * pandas
+  * geopandas
   * GDAL
 
 ## Usage
@@ -95,7 +95,7 @@ Out[24]:
 
 ```
 
-### Accessibilit isochrones
+### Accessibility isochrones (based on OSRM *table* service):
 
 ```python
 In [25]: from osrm import access_isochrone
@@ -104,3 +104,46 @@ In [26]: gdf, origin = osrm.access_isocrone((2.3888599, 48.5170365), n_breaks=7)
 
 
 ```
+
+### Using a *Point* instance to avoid confusion between x/y/latitude/longitude :
+
+```python
+In [25]: from osrm import Point, simple_route
+
+In [26]: p1 = Point(latitude=2.386459, longitude=48.512369)
+
+In [27]: p2 = Point(latitude=2.536974, longitude=48.793416)
+
+In [28]: result = simple_route(p1, p2)
+```
+
+### Easily change the host / profile name to query:
+#### By changing the default url :
+
+```python
+In [31]: import osrm
+
+In [32]: osrm.RequestConfig
+Out[32]: http://localhost:5000/*/v1/driving
+
+In [33]: osrm.RequestConfig.host = "router.project-osrm.org"
+
+In [34]: result = osrm.simple_route(p1, p2)
+```
+
+#### Or using a new RequestConfig instance, to switch between various url :
+
+```python
+In [35]: MyConfig = osrm.RequestConfig("localhost:9999/v1/biking")
+
+In [36]: MyConfig
+Out[36]: localhost:9999/*/v1/biking
+
+In [37]: MyConfig.profile = "driving"
+
+In [38]: MyConfig
+Out[38]: localhost:9999/*/v1/driving
+
+In [39]: result = osrm.simple_route(p1, p2, url_config=MyConfig)
+```
+

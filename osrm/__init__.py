@@ -5,6 +5,9 @@ Python wrapper for osrm API v5
 Wrap OSRM services 'route', 'nearest', 'table', 'match' and 'trip'.
 Allow geometry decoding for 'viaroute', 'match' and 'trip' functions.
 """
+from collections import namedtuple
+
+
 __version__ = '0.11.1'
 
 
@@ -33,6 +36,8 @@ class DefaultRequestConfig:
             return cla
 
 RequestConfig = DefaultRequestConfig()
+
+Point = namedtuple("Point", ("latitude", "longitude"))
 
 from .core import match, simple_route, nearest, table, trip, _chain
 from .extra import access_isocrone

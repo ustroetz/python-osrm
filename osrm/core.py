@@ -2,7 +2,7 @@
 import numpy as np
 from polyline.codec import PolylineCodec
 from pandas import DataFrame
-from . import __version__, RequestConfig
+from . import __version__, RequestConfig, Point
 
 try:
     from urllib.request import urlopen
