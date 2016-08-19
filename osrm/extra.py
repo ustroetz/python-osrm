@@ -6,7 +6,8 @@ import numpy as np
 from shapely.geometry import MultiPolygon, Polygon, Point
 from geopandas import GeoDataFrame, pd
 import matplotlib
-matplotlib.use('Agg')
+if not matplotlib.get_backend():
+    matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.mlab import griddata
 from math import ceil
@@ -92,8 +93,11 @@ def countour_poly(gdf, field_name, levels='auto'):
         )
 
     if isinstance(levels, int):
-        jmp = int(round((np.nanmax(z) - np.nanmin(z)) / levels))
-        levels = [nb for nb in range(0, int(round(np.nanmax(z))+1)+jmp, jmp)]
+        interval_time = int(round((np.nanmax(z) - np.nanmin(z)) / levels))
+        nb_inter = int(round(np.nanmax(z) / interval_time))
+        levels = tuple([nb for nb in range(0, int(
+            np.nanmax(z) + 1) + interval_time, interval_time)][:nb_inter])
+
 #    if switched:
 #        plt.ion()
     return collec_poly, levels
@@ -118,7 +122,7 @@ def isopoly_to_gdf(collec_poly, field_name=None, levels=None):
             polygons.append(mpoly)
             if levels:
                 data.append(levels[i])
-        elif len(poly) == 1:
+        elif len(mpoly) == 1:
             polygons.append(mpoly[0])
             if levels:
                 data.append(levels[i])
@@ -143,8 +147,9 @@ def make_grid(gdf, height):
     gdf: GeoDataFrame
         The collection of polygons to be covered by the grid.
     height: Integer
-        The dimension (will be used as height and width) of the ceils to create,
+        The size (will be used as height and width) of the ceils to create,
         in units of *gdf*.
+
     Returns
     -------
     grid: GeoDataFrame

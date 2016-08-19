@@ -1,5 +1,6 @@
 language: python
 python:
+  - "2.7"
   - "3.4"
   - "3.5"
 sudo: required
@@ -32,4 +33,5 @@ addons:
       - libpython3.5-dev
       - libgdal-dev
       - libproj-dev
+      - python-numpy
       - python3-numpy

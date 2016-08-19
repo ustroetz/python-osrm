@@ -13,6 +13,7 @@ try:
     from osgeo.ogr import Geometry
 except:
     from ogr import Geometry
+
 import json
 
 
@@ -20,6 +21,7 @@ def _chain(*lists):
     for li in lists:
         for elem in li:
             yield elem
+
 
 def check_host(host):
     """ Helper function to get the hostname in desired format """
@@ -31,6 +33,7 @@ def check_host(host):
         return host[:len(host)-1]
     else:
         return host
+
 
 def match(points, steps=False, overview="simplified", geometry="polyline",
           timestamps=None, radius=None, url_config=RequestConfig):
@@ -51,7 +54,8 @@ def match(points, steps=False, overview="simplified", geometry="polyline",
 
     url = [
         host, '/match/', url_config.version, '/', url_config.profile, '/',
-        ';'.join([','.join([str(coord[0]), str(coord[1])]) for coord in points]),
+        ';'.join(
+            [','.join([str(coord[0]), str(coord[1])]) for coord in points]),
         "?overview={}&steps={}&geometries={}"
            .format(overview, str(steps).lower(), geometry)
     ]
@@ -116,6 +120,9 @@ def simple_route(coord_origin, coord_dest, coord_intermediate=None,
     url_config: dict,
         Parameters regarding the host, version and profile to use
 
+import osrm
+
+
     Output:
     - if 'raw' : the original json returned by OSRM
     - if 'WKT' : the json returned by OSRM with the 'route_geometry' converted
@@ -127,7 +134,8 @@ def simple_route(coord_origin, coord_dest, coord_intermediate=None,
                                 'wkb', 'well-known-binary', 'geojson'):
         raise ValueError("Invalid output format")
     else:
-        geom_request = "geojson" if "geojson" in geometry.lower() else "polyline"
+        geom_request = "geojson" if "geojson" in geometry.lower() \
+            else "polyline"
 
     host = check_host(url_config.host)
 
@@ -201,8 +209,12 @@ def table(coords_src, coords_dest=None, ids_origin=None, ids_dest=None,
                 'numpy', 'array' or 'np' for a numpy array
     Output:
         - 'raw' : Return the raw json response
-        - 'numpy' : a numpy array containing the time in minutes, a list of snapped origin coordinates, a list of snapped destination coordinates
-        - 'pandas' : a labeled DataFrame containing the time matrix in minutes, a list of snapped origin coordinates, a list of snapped destination coordinates
+        - 'numpy' : a numpy array containing the time in minutes,
+                    a list of snapped origin coordinates,
+                    a list of snapped destination coordinates
+        - 'pandas' : a labeled DataFrame containing the time matrix in minutes,
+                     a list of snapped origin coordinates,
+                     a list of snapped destination coordinates
     """
     if output.lower() in ('numpy', 'array', 'np'):
         output = 1
@@ -218,14 +230,16 @@ def table(coords_src, coords_dest=None, ids_origin=None, ids_dest=None,
     if not coords_dest:
         url = ''.join([
              url,
-             ';'.join([','.join([str(coord[0]), str(coord[1])]) for coord in coords_src])
+             ';'.join([','.join([str(coord[0]), str(coord[1])])
+                       for coord in coords_src])
             ])
     else:
         src_end = len(coords_src)
         dest_end = src_end + len(coords_dest)
         url = ''.join([
             url,
-            ';'.join([','.join([str(coord[0]), str(coord[1])]) for coord in _chain(coords_src, coords_dest)]),
+            ';'.join([','.join([str(coord[0]), str(coord[1])])
+                      for coord in _chain(coords_src, coords_dest)]),
             '?sources=',
             ';'.join([str(i) for i in range(src_end)]),
             '&destinations=',
@@ -257,8 +271,8 @@ def table(coords_src, coords_dest=None, ids_origin=None, ids_dest=None,
             if not ids_origin:
                 ids_origin = [i for i in range(len(coords_src))]
             if not ids_dest:
-                ids_dest = [i for i in range(len(coords_dest))] if coords_dest \
-                    else ids_origin
+                ids_dest = ids_origin if not coords_dest \
+                    else [i for i in range(len(coords_dest))]
 
             durations = DataFrame(durations,
                                   index=ids_origin,
@@ -316,7 +330,8 @@ def trip(coords, steps=False, output="full",
         Parameters regarding the host, version and profile to use
 
     Output:
-    - if 'only_index' : a dict containing the respectiv index of trips and waypoints
+    - if 'only_index' : a dict containing respective indexes
+                        of trips and waypoints
     - if 'raw' : the original json returned by OSRM
     - if 'WKT' : the json returned by OSRM with the 'route_geometry' converted
                  in WKT format
@@ -327,13 +342,14 @@ def trip(coords, steps=False, output="full",
                                 'wkb', 'well-known-binary', 'geojson'):
         raise ValueError("Invalid output format")
     else:
-        geom_request = "geojson" if "geojson" in geometry.lower() else "polyline"
+        geom_request = "geojson" if "geojson" in geometry.lower() \
+            else "polyline"
 
     host = check_host(url_config.host)
 
     url = ''.join([
          host, '/trip/', url_config.version, '/', url_config.profile, '/',
-         ';'.join([','.join([str(coord[0]), str(coord[1])]) for coord in coords]),
+         ';'.join([','.join([str(c[0]), str(c[1])]) for c in coords]),
          '?steps={}'.format(str(steps).lower()),
          '&geometries={}'.format(geom_request),
          '&overview={}'.format(overview)
@@ -358,10 +374,12 @@ def trip(coords, steps=False, output="full",
         elif geometry in ("polyline", "geojson") and output == "trip":
             return parsed_json["trips"]
         else:
-            func = Geometry.ExportToWkb if geometry == "wkb" else Geometry.ExportToWkt
+            func = Geometry.ExportToWkb if geometry == "wkb" \
+                else Geometry.ExportToWkt
 
             for trip_route in parsed_json["trips"]:
-                trip_route["geometry"] = func(decode_geom(trip_route["geometry"]))
+                trip_route["geometry"] = func(decode_geom(
+                                            trip_route["geometry"]))
 
         return parsed_json if output == "full" else parsed_json["routes"]
 
