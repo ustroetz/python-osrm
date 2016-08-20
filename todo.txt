@@ -1,5 +1,5 @@
 TODO:
-- Change the readme according to the new code
 - Allow to use other OSRM params (like hints, bearing, etc.)
-- Write other tests
+- Always convert coordinates to polyline before sending request
+- Use better arguments for isochrones sizes / breaks / spans
 - Etc.

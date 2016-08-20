@@ -2,7 +2,10 @@
 """
 @author: mthh
 """
+from .core import table
+from . import RequestConfig
 import numpy as np
+from math import ceil
 from shapely.geometry import MultiPolygon, Polygon, Point
 from geopandas import GeoDataFrame, pd
 import matplotlib
@@ -10,12 +13,9 @@ if not matplotlib.get_backend():
     matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib.mlab import griddata
-from math import ceil
 
-from .core import table
-from . import RequestConfig
 
-def countour_poly(gdf, field_name, levels='auto'):
+def contour_poly(gdf, field_name, levels='auto'):
     """
     Parameters
     ----------
@@ -35,12 +35,6 @@ def countour_poly(gdf, field_name, levels='auto'):
         The shape of the computed polygons.
     levels: list of integers
     """
-#    if plt.isinteractive():
-#        plt.ioff()
-#        switched = True
-#    else:
-#        switched = False
-
     # Dont take point without value :
     gdf = gdf.iloc[gdf[field_name].nonzero()[0]][:]
     # Try to avoid unvalid geom :
@@ -83,27 +77,23 @@ def countour_poly(gdf, field_name, levels='auto'):
     xi = np.linspace(minx, maxx, 200)
     yi = np.linspace(miny, maxy, 200)
     zi = griddata(x, y, z, xi, yi, interp='linear')
-    if isinstance(levels, (str, bytes)) and 'auto' in levels:
-        jmp = int(round((np.nanmax(z) - np.nanmin(z)) / 15))
-        levels = [nb for nb in range(0, int(round(np.nanmax(z))+1)+jmp, jmp)]
 
     collec_poly = plt.contourf(
         xi, yi, zi, levels, cmap=plt.cm.rainbow,
         vmax=abs(zi).max(), vmin=-abs(zi).max(), alpha=0.35
         )
 
-    if isinstance(levels, int):
-        interval_time = int(round((np.nanmax(z) - np.nanmin(z)) / levels))
-        nb_inter = int(round(np.nanmax(z) / interval_time))
-        levels = tuple([nb for nb in range(0, int(
-            np.nanmax(z) + 1) + interval_time, interval_time)][:nb_inter])
+    interval_time = int(round((np.nanmax(z) - np.nanmin(z)) / levels))
+    nb_inter = int(round(np.nanmax(z) / interval_time))
+#    jmp = int(round((np.nanmax(z) - np.nanmin(z)) / 15))
+#    levels = [nb for nb in range(0, int(round(np.nanmax(z))+1)+jmp, jmp)]
+    levels = tuple([nb for nb in range(0, int(
+        np.nanmax(z) + 1) + interval_time, interval_time)][:nb_inter])
 
-#    if switched:
-#        plt.ion()
     return collec_poly, levels
 
 
-def isopoly_to_gdf(collec_poly, field_name=None, levels=None):
+def isopoly_to_gdf(collec_poly, field_name, levels):
     polygons, data = [], []
 
     for i, polygon in enumerate(collec_poly.collections):
@@ -127,10 +117,7 @@ def isopoly_to_gdf(collec_poly, field_name=None, levels=None):
             if levels:
                 data.append(levels[i])
 
-    if levels and isinstance(levels, (list, tuple)) \
-            and len(data) == len(polygons):
-        if not field_name:
-            field_name = 'value'
+    if len(data) == len(polygons):
         return GeoDataFrame(geometry=polygons,
                             data=data,
                             columns=[field_name])
@@ -178,6 +165,7 @@ def make_grid(gdf, height):
             y_bottom = y_bottom - height
         x_left_origin = x_left_origin + height
         x_right_origin = x_right_origin + height
+
     return GeoDataFrame(
         index=[i for i in range(len(res_geoms))],
         geometry=pd.Series(res_geoms).apply(lambda x: Polygon(x)),
@@ -185,7 +173,7 @@ def make_grid(gdf, height):
         )
 
 
-def access_isocrone(point_origin, precision=0.03, size=0.4, n_breaks=8,
+def access_isocrone(point_origin, precision=0.09, size=0.4, n_breaks=8,
                     url_config=RequestConfig):
     """
     Parameters
@@ -209,7 +197,7 @@ def access_isocrone(point_origin, precision=0.03, size=0.4, n_breaks=8,
     """
     gdf = GeoDataFrame(geometry=[Point(point_origin).buffer(size)])
     grid = make_grid(gdf, precision)
-    if len(grid) > 5000:
+    if len(grid) > 3500:
         print('Too large query requiered - Reduce precision or size')
         return -1
     coords_grid = \
@@ -225,6 +213,6 @@ def access_isocrone(point_origin, precision=0.03, size=0.4, n_breaks=8,
     grid = GeoDataFrame(geometry=geoms, data=values, columns=['time'])
     del geoms
     del values
-    collec_poly, levels = countour_poly(grid, 'time', levels=n_breaks)
+    collec_poly, levels = contour_poly(grid, 'time', levels=n_breaks)
     gdf_poly = isopoly_to_gdf(collec_poly, 'time', levels)
     return gdf_poly, new_pt_origin

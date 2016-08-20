@@ -134,12 +134,20 @@ class TestOsrmWrapper(unittest.TestCase):
         self.assertIsInstance(gdf, GeoDataFrame)
         self.assertEqual(n_breaks, len(gdf))
 
-#    @mock.patch('osrm.core.urlopen')
-#    def test_trips(self, mock_urlopen):
-#        result = osrm.trip(coords, output = "only_index")
-#        self.assertIsInstance(result, dict)
-#        self.assertIn("waypoint", result)
-#        self.assertIn("trip", result)
+    @mock.patch('osrm.core.urlopen')
+    def test_trips(self, mock_urlopen):
+        mock_urlopen.return_value = MockReadable(
+            u'''{"code":"Ok","trips":[{"legs":[{"steps":[],"summary":"","duration":507739.7,"distance":10016386.4},{"steps":[],"summary":"","duration":10035.7,"distance":281576.6},{"steps":[],"summary":"","duration":517625,"distance":10320096.1}],"geometry":"qbs~@ebywHjyiDnl_Ltt_Dwlj@nf_AhqhDuymBbdeM_eiFhr}Ff{tBbplCikVln|Bfw`BpgrEcre@jrjEz~dDne|KwnjAv`aBac~Ci{N}}mFbtnJqf{@fzOkqgDmitD{wpAtgaAahRv{kDeirGbmkFaxMfyeHqdmK|z}Joz~GjptAstxDlsjDgieIm~Oaf`ArvaAgwpHiecGq}xB`pe@kliFiupG}|nHtscAusyBekk@otaCqplFm}dPhe{HkyjAabr@ogE_tfBdxzBatrIiwwCwtmDagnRoacBkufCkjdBirvKtvEck~@ljnBcvqAg`Di~KxsmF_j|Brym@xIvlhAywrF|rtCixhAx~yBaj|GfpsC~{IzsyJohgAxobJig~EfppR{vXhmvF{vlDnmtGs~XdpeCazkFxj_DsbxCrnwFajnFzwdAandHn|`MgogIvsyBcb{FyiyAsxdChsyOklxCpgyCyvuCx|aGe_r@d}qK`zq@iiqKjcfBwluCtlr@wtrDnyiGi@ckKq|jCta~DuzgGxddB`q@vgjE}ljFtc~Culr@~nwFkm}K`dnFgrdArhxCgtwFlwkFyg~CfaYesfCdylDqrtG|}X_nvFp~}EejpRdhgAkkbJwwIk~yJlf|G{isCjwhAc~yB~jtFg}uCs|@ubgA`o|Bc}m@`zKqpmFhuqAteDbk}@sxmBhrwKamFxnfCbhdB`inR`acBn{wCvumDywzBporIp}D|{fBbbkA`gr@b{dPk_{HrwaCrblFtsyBvjk@||nHuscAjliFhupGp}xBape@fwpHhecG`f`AsvaAfieIl~OrtxDmsjDnz~GkptApdmK}z}J`xMgyeHdirGcmkF`hRw{kDzwpAugaAjqgDlitDpf{@gzOj}mFssnJre~Cd|NvljAcbaB{~dDoe|Kbre@krjEgw`BqgrEhkVmn|Bg{tBcplC~diFir}FtymBcdeMof_AiqhDut_Dvlj@","duration":1035400.4,"distance":20618059}],"waypoints":[{"waypoint_index":1,"location":[13.388799,52.517033],"name":"Friedrichstra\xc3\x9fe","hint":"eCEKgHudrorU0AAAEAAAABgAAAAGAAAAAAAAAF-UMQdJgZUDE_sAAP9LzACpWCEDPEzMAK1YIQMBAAEB9TrYrw==","trips_index":0},{"waypoint_index":2,"location":[10.000001,53.549986],"name":"Steinstra\xc3\x9fe","hint":"bb6sgjcQRYPD5wAACQAAABsAAAAAAAAAAAAAAL_wBApIJj8KE_sAAIGWmACiGzEDgJaYALAbMQMAAAEB9TrYrw==","trips_index":0},{"waypoint_index":0,"location":[51.251707,10.424888],"name":"","hint":"YgjCifUIwokAAAAA-wAAAAAAAADIuwAAAAAAADqQIgf4IoMBE_sAAPsJDgM4Ep8ArCsfA3OZlACJAAEB9TrYrw==","trips_index":0}]}'''
+            )
+        coords = [(13.388860,52.517037), (10.00,53.55), (52.374444,9.738611)]
+        result = osrm.trip(coords, output = "only_index")
+        self.assertIsInstance(result, list)
+        self.assertIn("waypoint", result[0])
+        self.assertIn("trip", result[0])
+
+        result2 = osrm.trip(coords, geometry="WKT")
+        self.assertIsInstance(result2, dict)
+        self.assertIn("LINESTRING", result2['trips'][0]["geometry"])
 
     @mock.patch('osrm.core.urlopen')
     def test_matches(self, mock_urlopen):
