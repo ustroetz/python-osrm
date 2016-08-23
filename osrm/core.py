@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 from polyline.codec import PolylineCodec
+from polyline import encode as polyline_encode
 from pandas import DataFrame
 from . import __version__, RequestConfig, Point
 
@@ -100,7 +101,7 @@ def decode_geom(encoded_polyline):
 def simple_route(coord_origin, coord_dest, coord_intermediate=None,
                  alternatives=False, steps=False, output="full",
                  geometry='polyline', overview="simplified",
-                 url_config=RequestConfig):
+                 url_config=RequestConfig, send_as_polyline=True):
     """
     Function wrapping OSRM 'viaroute' function and returning the JSON reponse
     with the route_geometry decoded (in WKT or WKB) if needed.
@@ -139,18 +140,32 @@ import osrm
 
     host = check_host(url_config.host)
 
-    url = [host, "/route/", url_config.version, "/", url_config.version, "/",
-           "{},{}".format(coord_origin[0], coord_origin[1]), ';']
+    if not send_as_polyline:
+        url = [host, "/route/", url_config.version, "/", url_config.profile, "/",
+               "{},{}".format(coord_origin[0], coord_origin[1]), ';']
 
-    if coord_intermediate:
-        url.append(";".join(
-            [','.join([str(i), str(j)]) for i, j in coord_intermediate]))
+        if coord_intermediate:
+            url.append(";".join(
+                [','.join([str(i), str(j)]) for i, j in coord_intermediate]))
 
-    url.extend([
-        '{},{}'.format(coord_dest[0], coord_dest[1]),
-        "?overview={}&steps={}&alternatives={}&geometries={}".format(
-         overview, str(steps).lower(), str(alternatives).lower(), geom_request)
-        ])
+        url.extend([
+            '{},{}'.format(coord_dest[0], coord_dest[1]),
+            "?overview={}&steps={}&alternatives={}&geometries={}".format(
+             overview, str(steps).lower(), str(alternatives).lower(), geom_request)
+            ])
+    else:
+        coords = [
+            pt[::-1] for pt in _chain(
+                        [coord_origin],
+                        coord_intermediate if coord_intermediate else [],
+                        [coord_dest])
+            ]
+        url = [
+            host, "/route/", url_config.version, "/", url_config.profile, "/",
+            "polyline(", polyline_encode(coords), ")",
+            "?overview={}&steps={}&alternatives={}&geometries={}".format(
+                 overview, str(steps).lower(), str(alternatives).lower(), geom_request)
+            ]
 
     try:  # Querying the OSRM instance..
         rep = urlopen(''.join(url))
@@ -183,7 +198,8 @@ import osrm
 
 
 def table(coords_src, coords_dest=None, ids_origin=None, ids_dest=None,
-          output='np', minutes=False, url_config=RequestConfig):
+          output='np',minutes=False,
+          url_config=RequestConfig, send_as_polyline=True):
     """
     Function wrapping OSRM 'table' function in order to get a matrix of
     time distance as a numpy array or as a DataFrame
@@ -227,24 +243,42 @@ def table(coords_src, coords_dest=None, ids_origin=None, ids_dest=None,
     url = ''.join(
         [host, '/table/', url_config.version, '/', url_config.profile, '/'])
 
-    if not coords_dest:
-        url = ''.join([
-             url,
-             ';'.join([','.join([str(coord[0]), str(coord[1])])
-                       for coord in coords_src])
-            ])
+    if not send_as_polyline:
+        if not coords_dest:
+            url = ''.join([
+                 url,
+                 ';'.join([','.join([str(coord[0]), str(coord[1])])
+                           for coord in coords_src])
+                ])
+        else:
+            src_end = len(coords_src)
+            dest_end = src_end + len(coords_dest)
+            url = ''.join([
+                url,
+                ';'.join([','.join([str(coord[0]), str(coord[1])])
+                          for coord in _chain(coords_src, coords_dest)]),
+                '?sources=',
+                ';'.join([str(i) for i in range(src_end)]),
+                '&destinations=',
+                ';'.join([str(j) for j in range(src_end, dest_end)])
+                ])
     else:
-        src_end = len(coords_src)
-        dest_end = src_end + len(coords_dest)
-        url = ''.join([
-            url,
-            ';'.join([','.join([str(coord[0]), str(coord[1])])
-                      for coord in _chain(coords_src, coords_dest)]),
-            '?sources=',
-            ';'.join([str(i) for i in range(src_end)]),
-            '&destinations=',
-            ';'.join([str(j) for j in range(src_end, dest_end)])
-            ])
+        if not coords_dest:
+            url = ''.join([url,
+                             "polyline(",
+                             polyline_encode([(c[1], c[0]) for c in coords_src]),
+                             ")"])
+        else:
+            src_end = len(coords_src)
+            dest_end = src_end + len(coords_dest)
+            url = ''.join([
+                url,
+                "polyline(",
+                polyline_encode([(c[1], c[0]) for c in _chain(coords_src, coords_dest)]),
+                ")",
+                '?sources=', ';'.join([str(i) for i in range(src_end)]),
+                '&destinations=', ';'.join([str(j) for j in range(src_end, dest_end)])
+                ])
 
     try:  # Querying the OSRM local instance
         rep = urlopen(url)
@@ -313,7 +347,7 @@ def nearest(coord, url_config=RequestConfig):
 
 def trip(coords, steps=False, output="full",
          geometry='polyline', overview="simplified",
-         url_config=RequestConfig):
+         url_config=RequestConfig, send_as_polyline=True):
     """
     Function wrapping OSRM 'trip' function and returning the JSON reponse
     with the route_geometry decoded (in WKT or WKB) if needed.
@@ -347,9 +381,13 @@ def trip(coords, steps=False, output="full",
 
     host = check_host(url_config.host)
 
+    coords_request = \
+        "".join(['Polyline(', polyline_encode([(c[1], c[0]) for c in coords]), ')']) if send_as_polyline \
+        else ';'.join([','.join([str(c[0]), str(c[1])]) for c in coords])
+
     url = ''.join([
          host, '/trip/', url_config.version, '/', url_config.profile, '/',
-         ';'.join([','.join([str(c[0]), str(c[1])]) for c in coords]),
+         coords_request,
          '?steps={}'.format(str(steps).lower()),
          '&geometries={}'.format(geom_request),
          '&overview={}'.format(overview)

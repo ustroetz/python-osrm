@@ -1,11 +1,16 @@
 
 # python-osrm
-A Python wrapper around the [OSRM API](https://github.com/Project-OSRM/osrm-backend/wiki/Server-api),
-providing an easy access to *viaroute*, *locate*, *nearest*, *match* and *table*.
+A Python wrapper around the [OSRM API](https://github.com/Project-OSRM/osrm-backend/wiki/Server-api).
   
-
 [![Build Status](https://travis-ci.org/mthh/python-osrm.svg?branch=master)](https://travis-ci.org/mthh/python-osrm)
   
+- Provide an easy access to *viaroute*, *table*, *trip*, *match* and *nearest* functionnalities.
+- Wrap most of the options of the API (overview, steps, alternatives, etc.).
+- Allow to directly decode geometry to various formats (list of coordinates, WKT, WKB) to be integrated in, let's say, a geo-layer creation with python ogr package.
+- Send coordinates encoded as Polyline as this is the prefered way to query the API.
+- Allow to draw accessibility isochrones around a point (through the utilisation of OSRM *table* service).
+- Intended to work on python 2.7.x and python 3.
+- Open to suggestions !
 
 ## Install
 ```
@@ -13,7 +18,13 @@ git clone git@github.com:ustroetz/python-osrm.git
 cd python-osrm
 python setup.py install
 ```
-# Requires
+
+## Running the test suite
+```
+python setup.py test
+```
+
+## Requires
   * polyline
   * numpy
   * pandas
@@ -34,7 +45,8 @@ In [19]: result = osrm.match(points, step=False, overview="simplified")
 ```
 
 ### route
-Return the original JSON reponse from OSRM (with optionnaly the geometry decoded in WKT or WKB)
+Return the original JSON reponse from OSRM (with optionnaly the geometry decoded in WKT or WKB),
+allow optionnaly to only output the routes.
 ```python
 In [23]: import osrm
 In [24]: result = osrm.simple_route(
@@ -52,7 +64,8 @@ Out[26]:
 ```
 
 ### table
-A simple wrapping function to fetch the matrix computed by OSRM as a dataframe (or as a numpy array) :
+A simple wrapping function to fetch the matrix computed by OSRM as a dataframe (or as a numpy array),
+as well as corrected/snapped localisation of the points used.
 ```python
 In [28]: import osrm
 
@@ -64,9 +77,9 @@ In [29]: list_coord = [[21.0566163803209, 42.004088575972],
 
 In [30]: list_id = ['name1', 'name2', 'name3', 'name4', 'name5']
 
-In [31]: time_matrix = osrm.table(list_coord,
-                                  ids_origin=list_id,
-                                  output='dataframe')
+In [31]: time_matrix, snapped_coords = osrm.table(list_coord,
+                                  				  ids_origin=list_id,
+                                  				  output='dataframe')
 
 In [32]: time_matrix
 Out[32]:
@@ -96,13 +109,34 @@ Out[24]:
 ```
 
 ### Accessibility isochrones (based on OSRM *table* service):
-
+Current options are the number of class and the precision/size of the underlying grid used.
 ```python
-In [25]: from osrm import access_isochrone
+In [5]: from osrm import access_isochrone
 
-In [26]: gdf, origin = osrm.access_isocrone((2.3888599, 48.5170365), n_breaks=7)
+In [6]: gdf, origin = osrm.access_isocrone((2.3888599, 48.5170365), n_breaks=8)
 
 
+In [7]: gdf
+Out[7]: 
+   time                                           geometry
+0     0  POLYGON ((2.362047974874372 48.48269845430378,...
+1     7  POLYGON ((2.310946286432161 48.43517617897293,...
+2    14  POLYGON ((2.383948698492462 48.38560307344205,...
+3    21  POLYGON ((2.387598819095477 48.32737243280435,...
+4    28  POLYGON ((2.216043150753769 48.26947012520299,...
+5    35  (POLYGON ((2.216043150753769 48.20382935117669...
+6    42  (POLYGON ((2.201442668341708 48.15523522377767...
+7    49  (POLYGON ((2.040837361809045 48.15349080904522...
+
+In [8]: gdf.plot(cmap="YlOrRd")
+Out[8]: <matplotlib.axes._subplots.AxesSubplot at 0x7f70861d4400>
+```
+![png](misc/exp_matplotlib.png)
+
+### Trip
+Fetch the full result (with geometry decoded to list, WKT or WKB) or grab only
+the order of the point to travel from.
+```python
 ```
 
 ### Using a *Point* instance to avoid confusion between x/y/latitude/longitude :
@@ -131,7 +165,7 @@ In [33]: osrm.RequestConfig.host = "router.project-osrm.org"
 In [34]: result = osrm.simple_route(p1, p2)
 ```
 
-#### Or using a new RequestConfig instance, to switch between various url :
+#### Or using a new *RequestConfig* instance, to switch between various url :
 
 ```python
 In [35]: MyConfig = osrm.RequestConfig("localhost:9999/v1/biking")

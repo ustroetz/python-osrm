@@ -91,6 +91,11 @@ class TestOsrmWrapper(unittest.TestCase):
                                               ids_origin=names,
                                               output="pandas")
         self.assertIsInstance(durations, DataFrame)
+        durations2, new_coords2, _ = osrm.table(coords,
+                                                ids_origin=names,
+                                                output="np")
+        self.assertIsInstance(durations2, numpy.ndarray)
+        self.assertEqual(durations.values.tolist(), durations2.tolist())
 
     @mock.patch('osrm.core.urlopen')
     def test_table_OD(self, mock_urlopen):
@@ -157,6 +162,18 @@ class TestOsrmWrapper(unittest.TestCase):
         coords = [[21.0566, 42.0040], [21.05667, 42.0041]]
         result = osrm.match(coords)
         self.assertIn("matchings", result)
+
+    def test_sending_polyline(self):
+        osrm.RequestConfig.host = "router.project-osrm.org"
+        result1 = osrm.simple_route((41.5332, 21.9598), (41.9725, 21.3114),
+                           output="routes",
+                           geometry="wkt",
+                           send_as_polyline=False)
+        result2 = osrm.simple_route((41.5332, 21.9598), (41.9725, 21.3114),
+                           output="routes",
+                           geometry="wkt",
+                           send_as_polyline=True)
+        self.assertEqual(result1, result2)
 
 
 if __name__ == "__main__":

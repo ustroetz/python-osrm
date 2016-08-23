@@ -23,12 +23,9 @@ def contour_poly(gdf, field_name, levels='auto'):
         The GeoDataFrame containing points and associated values.
     field_name: String
         The name of the column of *gdf* containing the value to use.
-    levels: int, or list of int, default 'auto'
+    levels: int,
         The number of levels to use for contour polygons if levels is an
         integer (exemple: levels=8).
-        Or
-        Limits of the class to use in a list/tuple (like [0, 200, 400, 800])
-        Defaults is set to 15 class.
     Return
     ------
     collection_polygons: matplotlib.contour.QuadContourSet
@@ -78,17 +75,17 @@ def contour_poly(gdf, field_name, levels='auto'):
     yi = np.linspace(miny, maxy, 200)
     zi = griddata(x, y, z, xi, yi, interp='linear')
 
-    collec_poly = plt.contourf(
-        xi, yi, zi, levels, cmap=plt.cm.rainbow,
-        vmax=abs(zi).max(), vmin=-abs(zi).max(), alpha=0.35
-        )
-
     interval_time = int(round((np.nanmax(z) - np.nanmin(z)) / levels))
     nb_inter = int(round(np.nanmax(z) / interval_time))
 #    jmp = int(round((np.nanmax(z) - np.nanmin(z)) / 15))
 #    levels = [nb for nb in range(0, int(round(np.nanmax(z))+1)+jmp, jmp)]
     levels = tuple([nb for nb in range(0, int(
-        np.nanmax(z) + 1) + interval_time, interval_time)][:nb_inter])
+        np.nanmax(z) + 1) + interval_time, interval_time)][:nb_inter+1])
+
+    collec_poly = plt.contourf(
+        xi, yi, zi, levels, cmap=plt.cm.rainbow,
+        vmax=abs(zi).max(), vmin=-abs(zi).max(), alpha=0.35
+        )
 
     return collec_poly, levels
 
