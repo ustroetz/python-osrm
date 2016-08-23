@@ -3,9 +3,9 @@
 @author: mthh
 """
 from .core import table
-from . import RequestConfig
+from . import RequestConfig, Point as _Point
 import numpy as np
-from math import ceil
+#from math import ceil
 from shapely.geometry import MultiPolygon, Polygon, Point
 from geopandas import GeoDataFrame, pd
 import matplotlib
@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 from matplotlib.mlab import griddata
 
 
-def contour_poly(gdf, field_name, levels='auto'):
+def contour_poly(gdf, field_name, n_class):
     """
     Parameters
     ----------
@@ -23,8 +23,8 @@ def contour_poly(gdf, field_name, levels='auto'):
         The GeoDataFrame containing points and associated values.
     field_name: String
         The name of the column of *gdf* containing the value to use.
-    levels: int,
-        The number of levels to use for contour polygons if levels is an
+    n_class: int,
+        The number of class to use for contour polygons if levels is an
         integer (exemple: levels=8).
     Return
     ------
@@ -75,8 +75,8 @@ def contour_poly(gdf, field_name, levels='auto'):
     yi = np.linspace(miny, maxy, 200)
     zi = griddata(x, y, z, xi, yi, interp='linear')
 
-    interval_time = int(round((np.nanmax(z) - np.nanmin(z)) / levels))
-    nb_inter = int(round(np.nanmax(z) / interval_time))
+    interval_time = int(round(np.nanmax(z) / n_class))
+    nb_inter = n_class + 1
 #    jmp = int(round((np.nanmax(z) - np.nanmin(z)) / 15))
 #    levels = [nb for nb in range(0, int(round(np.nanmax(z))+1)+jmp, jmp)]
     levels = tuple([nb for nb in range(0, int(
@@ -87,7 +87,7 @@ def contour_poly(gdf, field_name, levels='auto'):
         vmax=abs(zi).max(), vmin=-abs(zi).max(), alpha=0.35
         )
 
-    return collec_poly, levels
+    return collec_poly, levels[1:]
 
 
 def isopoly_to_gdf(collec_poly, field_name, levels):
@@ -122,7 +122,7 @@ def isopoly_to_gdf(collec_poly, field_name, levels):
         return GeoDataFrame(geometry=polygons)
 
 
-def make_grid(gdf, height):
+def make_grid(gdf, nb_points):
     """
     Return a grid, based on the shape of *gdf* and on a *height* value (in
     units of *gdf*).
@@ -130,75 +130,71 @@ def make_grid(gdf, height):
     ----------
     gdf: GeoDataFrame
         The collection of polygons to be covered by the grid.
-    height: Integer
-        The size (will be used as height and width) of the ceils to create,
-        in units of *gdf*.
+    nb_points: Integer
+        The number of expected points of the grid.
 
     Returns
     -------
     grid: GeoDataFrame
         A collection of polygons.
     """
-    xmin, ymin = [i.min() for i in gdf.bounds.T.values[:2]]
-    xmax, ymax = [i.max() for i in gdf.bounds.T.values[2:]]
-    rows = ceil((ymax-ymin) / height)
-    cols = ceil((xmax-xmin) / height)
-
+    xmin, ymin = gdf.total_bounds[:2]
+    xmax, ymax = gdf.total_bounds[2:]
+    rows = int(nb_points**0.5)
+    cols = int(nb_points**0.5)
+    height = (ymax-ymin) / rows
+    width = (xmax-xmin) / cols
     x_left_origin = xmin
-    x_right_origin = xmin + height
+    x_right_origin = xmin + width
     y_top_origin = ymax
     y_bottom_origin = ymax - height
 
     res_geoms = []
-    for countcols in range(int(cols)):
+    for countcols in range(cols):
         y_top = y_top_origin
         y_bottom = y_bottom_origin
-        for countrows in range(int(rows)):
+        for countrows in range(rows):
             res_geoms.append((
                 (x_left_origin, y_top), (x_right_origin, y_top),
                 (x_right_origin, y_bottom), (x_left_origin, y_bottom)
                 ))
             y_top = y_top - height
             y_bottom = y_bottom - height
-        x_left_origin = x_left_origin + height
-        x_right_origin = x_right_origin + height
+        x_left_origin = x_left_origin + width
+        x_right_origin = x_right_origin + width
 
     return GeoDataFrame(
-        index=[i for i in range(len(res_geoms))],
-        geometry=pd.Series(res_geoms).apply(lambda x: Polygon(x)),
+        geometry=pd.Series(res_geoms).apply(lambda x: Polygon(x).centroid),
         crs=gdf.crs
         )
 
 
-def access_isocrone(point_origin, precision=0.09, size=0.4, n_breaks=8,
+def access_isocrone(point_origin, points_grid=100,
+                    size=0.4, n_class=8,
                     url_config=RequestConfig):
     """
     Parameters
     ----------
     point_origin: 2-floats tuple
         The coordinates of the center point to use as (x, y).
-    precision: float
-
+    nb_points: Integer
+        The number of points of the underlying grid to use.
     size: float
         Search radius (in degree).
-    url_config:
-
+    url_config: osrm.RequestConfig
 
     Return
     ------
     gdf_poly: GeoDataFrame
         The shape of the computed accessibility polygons.
-    new_point_origin: 2-floats tuple
-        The coord (x, y) of the origin point (could be the same as provided
-        or have been slightly moved to be on a road).
+    new_point_origin: osrm.Point
+        The coordinates (latitude, longitude) of the origin point
+        (could have been slightly moved to be on a road).
     """
     gdf = GeoDataFrame(geometry=[Point(point_origin).buffer(size)])
-    grid = make_grid(gdf, precision)
-    if len(grid) > 3500:
-        print('Too large query requiered - Reduce precision or size')
-        return -1
+    grid = make_grid(gdf, points_grid)
     coords_grid = \
-        [(i.coords.xy[0][0], i.coords.xy[1][0]) for i in grid.geometry.centroid]
+        [(i.coords.xy[0][0], i.coords.xy[1][0]) for i in grid.geometry]
     times, new_pt_origin, pts_dest = \
         table([point_origin], coords_grid, url_config)
     times = (times[0] / 60.0).round(2)  # Round values in minutes
@@ -210,6 +206,7 @@ def access_isocrone(point_origin, precision=0.09, size=0.4, n_breaks=8,
     grid = GeoDataFrame(geometry=geoms, data=values, columns=['time'])
     del geoms
     del values
-    collec_poly, levels = contour_poly(grid, 'time', levels=n_breaks)
+    collec_poly, levels = contour_poly(grid, 'time', n_class=n_class)
     gdf_poly = isopoly_to_gdf(collec_poly, 'time', levels)
-    return gdf_poly, new_pt_origin
+    return gdf_poly, _Point(latitude=new_pt_origin[0][0],
+                            longitude=new_pt_origin[0][1])
