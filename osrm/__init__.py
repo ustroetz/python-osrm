@@ -12,9 +12,10 @@ __version__ = '0.11.1'
 
 
 class DefaultRequestConfig:
-    host = "http://localhost:5000"
-    profile = "driving"
-    version = "v1"
+    def __init__(self):
+        self.host = "http://localhost:5000"
+        self.profile = "driving"
+        self.version = "v1"
 
     def __str__(self):
         return("/".join([self.host, '*', self.version, self.profile]))
@@ -40,4 +41,4 @@ RequestConfig = DefaultRequestConfig()
 Point = namedtuple("Point", ("latitude", "longitude"))
 
 from .core import match, simple_route, nearest, table, trip, _chain
-from .extra import access_isocrone
+from .extra import AccessIsochrone

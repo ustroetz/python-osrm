@@ -3,7 +3,7 @@ import numpy as np
 from polyline.codec import PolylineCodec
 from polyline import encode as polyline_encode
 from pandas import DataFrame
-from . import __version__, RequestConfig, Point
+from . import RequestConfig
 
 try:
     from urllib.request import urlopen
@@ -121,9 +121,6 @@ def simple_route(coord_origin, coord_dest, coord_intermediate=None,
     url_config: dict,
         Parameters regarding the host, version and profile to use
 
-import osrm
-
-
     Output:
     - if 'raw' : the original json returned by OSRM
     - if 'WKT' : the json returned by OSRM with the 'route_geometry' converted
@@ -141,8 +138,8 @@ import osrm
     host = check_host(url_config.host)
 
     if not send_as_polyline:
-        url = [host, "/route/", url_config.version, "/", url_config.profile, "/",
-               "{},{}".format(coord_origin[0], coord_origin[1]), ';']
+        url = [host, "/route/", url_config.version, "/", url_config.profile,
+               "/", "{},{}".format(coord_origin[0], coord_origin[1]), ';']
 
         if coord_intermediate:
             url.append(";".join(
@@ -151,7 +148,8 @@ import osrm
         url.extend([
             '{},{}'.format(coord_dest[0], coord_dest[1]),
             "?overview={}&steps={}&alternatives={}&geometries={}".format(
-             overview, str(steps).lower(), str(alternatives).lower(), geom_request)
+                 overview, str(steps).lower(),
+                 str(alternatives).lower(), geom_request)
             ])
     else:
         coords = [
@@ -164,16 +162,11 @@ import osrm
             host, "/route/", url_config.version, "/", url_config.profile, "/",
             "polyline(", polyline_encode(coords), ")",
             "?overview={}&steps={}&alternatives={}&geometries={}".format(
-                 overview, str(steps).lower(), str(alternatives).lower(), geom_request)
+                 overview, str(steps).lower(),
+                 str(alternatives).lower(), geom_request)
             ]
-
-    try:  # Querying the OSRM instance..
-        rep = urlopen(''.join(url))
-        parsed_json = json.loads(rep.read().decode('utf-8'))
-
-    except Exception as err:
-        raise ValueError(
-            'Error while contacting OSRM instance : \n{}'.format(err))
+    rep = urlopen(''.join(url))
+    parsed_json = json.loads(rep.read().decode('utf-8'))
 
     if "Ok" in parsed_json['code']:
         if geometry in ("polyline", "geojson") and output == "full":
@@ -197,8 +190,9 @@ import osrm
                 parsed_json['code'], parsed_json))
 
 
-def table(coords_src, coords_dest=None, ids_origin=None, ids_dest=None,
-          output='np',minutes=False,
+def table(coords_src, coords_dest=None,
+          ids_origin=None, ids_dest=None,
+          output='np', minutes=False,
           url_config=RequestConfig, send_as_polyline=True):
     """
     Function wrapping OSRM 'table' function in order to get a matrix of
@@ -265,27 +259,26 @@ def table(coords_src, coords_dest=None, ids_origin=None, ids_dest=None,
     else:
         if not coords_dest:
             url = ''.join([url,
-                             "polyline(",
-                             polyline_encode([(c[1], c[0]) for c in coords_src]),
-                             ")"])
+                           "polyline(",
+                           polyline_encode([(c[1], c[0]) for c in coords_src]),
+                           ")"])
         else:
             src_end = len(coords_src)
             dest_end = src_end + len(coords_dest)
             url = ''.join([
                 url,
                 "polyline(",
-                polyline_encode([(c[1], c[0]) for c in _chain(coords_src, coords_dest)]),
+                polyline_encode(
+                    [(c[1], c[0]) for c in _chain(coords_src, coords_dest)]),
                 ")",
-                '?sources=', ';'.join([str(i) for i in range(src_end)]),
-                '&destinations=', ';'.join([str(j) for j in range(src_end, dest_end)])
+                '?sources=',
+                ';'.join([str(i) for i in range(src_end)]),
+                '&destinations=',
+                ';'.join([str(j) for j in range(src_end, dest_end)])
                 ])
 
-    try:  # Querying the OSRM local instance
-        rep = urlopen(url)
-        parsed_json = json.loads(rep.read().decode('utf-8'))
-    except Exception as err:
-        raise ValueError(
-            'Error while contacting OSRM instance : \n{}'.format(err))
+    rep = urlopen(url)
+    parsed_json = json.loads(rep.read().decode('utf-8'))
 
     if "code" not in parsed_json or "Ok" not in parsed_json["code"]:
         raise ValueError('No distance table return by OSRM instance')
@@ -330,19 +323,14 @@ def nearest(coord, url_config=RequestConfig):
     Output:
         The response from the osrm instance, parsed as a dict
     """
-
     host = check_host(url_config.host)
     url = '/'.join(
         [host, 'nearest', url_config.version, url_config.profile,
          str(coord).replace('(', '').replace(')', '').replace(' ', '')]
         )
-    try:
-        rep = urlopen(url)
-        parsed_json = json.loads(rep.read().decode('utf-8'))
-        return parsed_json
-    except Exception as err:
-        raise ValueError(
-            'Error while contacting OSRM instance : \n{}'.format(err))
+    rep = urlopen(url)
+    parsed_json = json.loads(rep.read().decode('utf-8'))
+    return parsed_json
 
 
 def trip(coords, steps=False, output="full",
@@ -382,7 +370,10 @@ def trip(coords, steps=False, output="full",
     host = check_host(url_config.host)
 
     coords_request = \
-        "".join(['Polyline(', polyline_encode([(c[1], c[0]) for c in coords]), ')']) if send_as_polyline \
+        "".join(['Polyline(',
+                 polyline_encode([(c[1], c[0]) for c in coords]),
+                 ')']) \
+        if send_as_polyline \
         else ';'.join([','.join([str(c[0]), str(c[1])]) for c in coords])
 
     url = ''.join([
@@ -393,13 +384,8 @@ def trip(coords, steps=False, output="full",
          '&overview={}'.format(overview)
          ])
 
-    try:  # Querying the OSRM instance..
-        rep = urlopen(url)
-        parsed_json = json.loads(rep.read().decode('utf-8'))
-
-    except Exception as err:
-        raise ValueError(
-            'Error while contacting OSRM instance : \n{}'.format(err))
+    rep = urlopen(url)
+    parsed_json = json.loads(rep.read().decode('utf-8'))
 
     if "Ok" in parsed_json['code']:
         if "only_index" in output:

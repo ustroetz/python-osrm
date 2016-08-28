@@ -111,27 +111,22 @@ Out[24]:
 ### Accessibility isochrones (based on OSRM *table* service):
 Current options are the number of class and the precision/size of the underlying grid used.
 ```python
-In [5]: from osrm import access_isochrone
+In [1]: import osrm
 
-In [6]: gdf, origin = osrm.access_isocrone((2.3888599, 48.5170365), n_breaks=8)
+In [2]: Accessibility = osrm.AccessIsochrone((10.00,53.55), points_grid=450)
 
+In [3]: gdf = Accessibility.render_contour(n_class=8)
 
-In [7]: gdf
-Out[7]: 
-   time                                           geometry
-0     0  POLYGON ((2.362047974874372 48.48269845430378,...
-1     7  POLYGON ((2.310946286432161 48.43517617897293,...
-2    14  POLYGON ((2.383948698492462 48.38560307344205,...
-3    21  POLYGON ((2.387598819095477 48.32737243280435,...
-4    28  POLYGON ((2.216043150753769 48.26947012520299,...
-5    35  (POLYGON ((2.216043150753769 48.20382935117669...
-6    42  (POLYGON ((2.201442668341708 48.15523522377767...
-7    49  (POLYGON ((2.040837361809045 48.15349080904522...
-
-In [8]: gdf.plot(cmap="YlOrRd")
-Out[8]: <matplotlib.axes._subplots.AxesSubplot at 0x7f70861d4400>
+In [4]: gdf.plot(cmap="YlOrRd")
+Out[4]: <matplotlib.axes._subplots.AxesSubplot at 0x7f13447b8978>
 ```
 ![png](misc/exp_matplotlib.png)
+```python
+In [5]: Accessibility.grid.plot()  # The grid of points is stored as a GeoDataFrame too
+Out[5]: <matplotlib.axes._subplots.AxesSubplot at 0x7f134467ae80>
+```
+![png](misc/exp_matplotlib2.png)
+
 
 ### Trip
 Fetch the full result (with geometry decoded to list, WKT or WKB) or grab only

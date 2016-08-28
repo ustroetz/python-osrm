@@ -5,6 +5,11 @@ try:
 except:
     import mock
 
+try:
+    from urllib.request import URLError
+except:
+    from urllib2 import URLError
+
 from pandas import DataFrame
 from geopandas import GeoDataFrame
 import numpy
@@ -122,8 +127,26 @@ class TestOsrmWrapper(unittest.TestCase):
     def test_non_existing_host(self):
         Profile = osrm.RequestConfig("localhost/v1/flying")
         self.assertEqual(Profile.host, "localhost")
-        with self.assertRaises(ValueError):
+        with self.assertRaises(URLError):
             osrm.nearest((12.36, 45.36), url_config=Profile)
+        with self.assertRaises(URLError):
+            osrm.trip(
+                [(13.38886, 52.51703), (10.00, 53.55), (52.374444, 9.738611)],
+                url_config=Profile)
+        with self.assertRaises(URLError):
+            osrm.simple_route(
+                (13.38886, 52.51703), (10.00, 53.55), url_config=Profile)
+        with self.assertRaises(URLError):
+            osrm.AccessIsochrone(
+                (13.38886, 52.51703), points_grid=100, url_config=Profile)
+        with self.assertRaises(URLError):
+            osrm.match(
+                [(10.00, 53.55), (52.374444, 9.738611)], url_config=Profile)
+        with self.assertRaises(URLError):
+            osrm.table(
+                [(10.00, 53.55), (52.374444, 9.738611)],
+                [(10.00, 53.55), (52.374444, 9.738611)],
+                url_config=Profile)
 
     @mock.patch('osrm.core.urlopen')
     def test_accessibility(self, mock_urlopen):
@@ -132,25 +155,22 @@ class TestOsrmWrapper(unittest.TestCase):
                 )
 
         center_pt = osrm.Point(latitude=21.0566163, longitude=42.0040885)
-
         n_class = 8
-        gdf, new_pt = \
-            osrm.access_isocrone(center_pt, points_grid=100, n_class=n_class)
 
-        self.assertIsInstance(new_pt, osrm.Point)
+        Accessibility = osrm.AccessIsochrone(center_pt, points_grid=100)
+        snapped_center_point = Accessibility.center_point
+        gdf = Accessibility.render_contour(n_class=n_class)
+
+        self.assertIsInstance(snapped_center_point, osrm.Point)
         self.assertIsInstance(gdf, GeoDataFrame)
         self.assertEqual(n_class, len(gdf))
 
         n_class = 5
-        gdf, new_pt = \
-            osrm.access_isocrone(center_pt, points_grid=100, n_class=n_class)
-
+        gdf = Accessibility.render_contour(n_class=n_class)
         self.assertEqual(n_class, len(gdf))
 
         n_class = 10
-        gdf, new_pt = \
-            osrm.access_isocrone(center_pt, points_grid=180, n_class=n_class)
-
+        gdf = Accessibility.render_contour(n_class=n_class)
         self.assertEqual(n_class, len(gdf))
 
     @mock.patch('osrm.core.urlopen')
@@ -188,7 +208,6 @@ class TestOsrmWrapper(unittest.TestCase):
                            geometry="wkt",
                            send_as_polyline=True)
         self.assertEqual(result1, result2)
-
 
 if __name__ == "__main__":
     unittest.main()

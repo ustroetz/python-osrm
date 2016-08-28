@@ -5,7 +5,6 @@
 from .core import table
 from . import RequestConfig, Point as _Point
 import numpy as np
-#from math import ceil
 from shapely.geometry import MultiPolygon, Polygon, Point
 from geopandas import GeoDataFrame, pd
 import matplotlib
@@ -48,7 +47,7 @@ def contour_poly(gdf, field_name, n_class):
 
     # Always in order to avoid invalid value which will cause the fail
     # of the griddata function :
-    try: # Normal way (fails if a non valid geom is encountered)
+    try:  # Normal way (fails if a non valid geom is encountered)
         x = np.array([geom.coords.xy[0][0] for geom in valid_geoms.geometry])
         y = np.array([geom.coords.xy[1][0] for geom in valid_geoms.geometry])
         z = valid_geoms[field_name].values
@@ -138,8 +137,7 @@ def make_grid(gdf, nb_points):
     grid: GeoDataFrame
         A collection of polygons.
     """
-    xmin, ymin = gdf.total_bounds[:2]
-    xmax, ymax = gdf.total_bounds[2:]
+    xmin, ymin, xmax, ymax = gdf.total_bounds
     rows = int(nb_points**0.5)
     cols = int(nb_points**0.5)
     height = (ymax-ymin) / rows
@@ -155,8 +153,7 @@ def make_grid(gdf, nb_points):
         y_bottom = y_bottom_origin
         for countrows in range(rows):
             res_geoms.append((
-                (x_left_origin, y_top), (x_right_origin, y_top),
-                (x_right_origin, y_bottom), (x_left_origin, y_bottom)
+                (x_left_origin + x_right_origin) / 2, (y_top + y_bottom) / 2
                 ))
             y_top = y_top - height
             y_bottom = y_bottom - height
@@ -164,49 +161,96 @@ def make_grid(gdf, nb_points):
         x_right_origin = x_right_origin + width
 
     return GeoDataFrame(
-        geometry=pd.Series(res_geoms).apply(lambda x: Polygon(x).centroid),
+        geometry=pd.Series(res_geoms).apply(lambda x: Point(x)),
         crs=gdf.crs
         )
 
 
-def access_isocrone(point_origin, points_grid=100,
-                    size=0.4, n_class=8,
-                    url_config=RequestConfig):
-    """
-    Parameters
-    ----------
-    point_origin: 2-floats tuple
-        The coordinates of the center point to use as (x, y).
-    nb_points: Integer
-        The number of points of the underlying grid to use.
-    size: float
-        Search radius (in degree).
-    url_config: osrm.RequestConfig
+class AccessIsochrone:
+    def __init__(self, point_origin, points_grid=250,
+                 size=0.4, url_config=RequestConfig):
+        """
+        Parameters
+        ----------
+        point_origin: 2-floats tuple
+            The coordinates of the center point to use as (x, y).
+        points_grid: Integer
+            The number of points of the underlying grid to use.
+        size: float
+            Search radius (in degree).
+        url_config: osrm.RequestConfig
+            The OSRM url to be requested
+        """
+        gdf = GeoDataFrame(geometry=[Point(point_origin).buffer(size)])
+        grid = make_grid(gdf, points_grid)
+        coords_grid = \
+            [(i.coords.xy[0][0], i.coords.xy[1][0]) for i in grid.geometry]
+        self.times, new_pt_origin, pts_dest = \
+            table([point_origin], coords_grid, url_config=url_config)
+        self.times = (self.times[0] / 60.0).round(2)  # Round values in minutes
+        geoms, values = [], []
+        for time, coord in zip(self.times, pts_dest):
+            if time:
+                geoms.append(Point(coord))
+                values.append(time)
+        self.grid = GeoDataFrame(geometry=geoms, data=values, columns=['time'])
+        self.center_point = _Point(
+            latitude=new_pt_origin[0][0], longitude=new_pt_origin[0][1])
 
-    Return
-    ------
-    gdf_poly: GeoDataFrame
-        The shape of the computed accessibility polygons.
-    new_point_origin: osrm.Point
-        The coordinates (latitude, longitude) of the origin point
-        (could have been slightly moved to be on a road).
-    """
-    gdf = GeoDataFrame(geometry=[Point(point_origin).buffer(size)])
-    grid = make_grid(gdf, points_grid)
-    coords_grid = \
-        [(i.coords.xy[0][0], i.coords.xy[1][0]) for i in grid.geometry]
-    times, new_pt_origin, pts_dest = \
-        table([point_origin], coords_grid, url_config)
-    times = (times[0] / 60.0).round(2)  # Round values in minutes
-    geoms, values = [], []
-    for time, coord in zip(times, pts_dest):
-        if time:
-            geoms.append(Point(coord))
-            values.append(time)
-    grid = GeoDataFrame(geometry=geoms, data=values, columns=['time'])
-    del geoms
-    del values
-    collec_poly, levels = contour_poly(grid, 'time', n_class=n_class)
-    gdf_poly = isopoly_to_gdf(collec_poly, 'time', levels)
-    return gdf_poly, _Point(latitude=new_pt_origin[0][0],
-                            longitude=new_pt_origin[0][1])
+    def render_contour(self, n_class):
+        """
+        Parameters
+        ----------
+        n_class: Integer
+             The desired number of class
+
+        Return
+        ------
+        gdf_poly: GeoDataFrame
+            The shape of the computed accessibility polygons.
+        """
+        collec_poly, levels = contour_poly(self.grid, 'time', n_class=n_class)
+        gdf_poly = isopoly_to_gdf(collec_poly, 'time', levels)
+        return gdf_poly
+
+#def access_isocrone(point_origin, points_grid=100,
+#                    size=0.4, n_class=8,
+#                    url_config=RequestConfig):
+#    """
+#    Parameters
+#    ----------
+#    point_origin: 2-floats tuple
+#        The coordinates of the center point to use as (x, y).
+#    nb_points: Integer
+#        The number of points of the underlying grid to use.
+#    size: float
+#        Search radius (in degree).
+#    url_config: osrm.RequestConfig
+#
+#    Return
+#    ------
+#    gdf_poly: GeoDataFrame
+#        The shape of the computed accessibility polygons.
+#    new_point_origin: osrm.Point
+#        The coordinates (latitude, longitude) of the origin point
+#        (could have been slightly moved to be on a road).
+#    """
+#    gdf = GeoDataFrame(geometry=[Point(point_origin).buffer(size)])
+#    grid = make_grid(gdf, points_grid)
+#    coords_grid = \
+#        [(i.coords.xy[0][0], i.coords.xy[1][0]) for i in grid.geometry]
+#    times, new_pt_origin, pts_dest = \
+#        table([point_origin], coords_grid, url_config)
+#    times = (times[0] / 60.0).round(2)  # Round values in minutes
+#    geoms, values = [], []
+#    for time, coord in zip(times, pts_dest):
+#        if time:
+#            geoms.append(Point(coord))
+#            values.append(time)
+#    grid = GeoDataFrame(geometry=geoms, data=values, columns=['time'])
+#    del geoms
+#    del values
+#    collec_poly, levels = contour_poly(grid, 'time', n_class=n_class)
+#    gdf_poly = isopoly_to_gdf(collec_poly, 'time', levels)
+#    return gdf_poly, _Point(latitude=new_pt_origin[0][0],
+#                            longitude=new_pt_origin[0][1])
