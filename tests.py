@@ -198,7 +198,8 @@ class TestOsrmWrapper(unittest.TestCase):
         result = osrm.match(coords)
         self.assertIn("matchings", result)
 
-    @unittest.skipIf("TRAVIS" in os.environ and os.environ["TRAVIS"] == "true")
+    @unittest.skipIf("TRAVIS" in os.environ and os.environ["TRAVIS"] == "true",
+                     "Test skipped on Travis")
     def test_sending_polyline(self):
         osrm.RequestConfig.host = "router.project-osrm.org"
         result1 = osrm.simple_route((41.5332, 21.9598), (41.9725, 21.3114),
