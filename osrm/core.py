@@ -39,16 +39,28 @@ def check_host(host):
 def match(points, steps=False, overview="simplified", geometry="polyline",
           timestamps=None, radius=None, url_config=RequestConfig):
     """
-    Function wrapping OSRM 'match' function,
-    returning the reponse in JSON
-    Params:
+    Function wrapping OSRM 'match' function, returning the reponse in JSON
+
+    Parameters
+    ----------
 
     points: list of tuple/list of point
-        (x ,y) where x is longitude and y is latitude
-    url_config: dict,
+        A sequence of points as (x ,y) where x is longitude and y is latitude.
+    steps: bool, optional
+        Default is False.
+    overview: str, optional
+        Query for the geometry overview, either "simplified", "full" or "false"
+        (Default: "simplified")
+    geometry: str, optional
+        Format in which decode the geometry, either "polyline" (ie. not decoded),
+        "geojson", "WKT" or "WKB" (default: "polyline").
+    timestamps: bool, optional
+    radius: bool, optional
+    url_config: osrm.RequestConfig, optional
         Parameters regarding the host, version and profile to use
 
-    Output:
+    Returns
+    -------
         The response from the osrm instance, parsed as a dict
     """
     host = check_host(url_config.host)
@@ -86,10 +98,15 @@ def decode_geom(encoded_polyline):
     Function decoding an encoded polyline (with 'encoded polyline
     algorithm') and returning an ogr.Geometry object
 
-    Params:
-
+    Parameters
+    ----------
     encoded_polyline: str
-        The encoded string to decode
+        The encoded string to decode.
+
+    Returns
+    -------
+    line: ogr.Geometry
+        The line geometry, as an ogr.Geometry instance.
     """
     ma_ligne = Geometry(2)
     lineAddPts = ma_ligne.AddPoint_2D
@@ -106,7 +123,8 @@ def simple_route(coord_origin, coord_dest, coord_intermediate=None,
     Function wrapping OSRM 'viaroute' function and returning the JSON reponse
     with the route_geometry decoded (in WKT or WKB) if needed.
 
-    Params:
+    Parameters
+    ----------
 
     coord_origin: list/tuple of two floats
         (x ,y) where x is longitude and y is latitude
@@ -114,19 +132,23 @@ def simple_route(coord_origin, coord_dest, coord_intermediate=None,
         (x ,y) where x is longitude and y is latitude
     coord_intermediate: list of list/tuple of two floats
         [(x ,y), (x, y), ...] where x is longitude and y is latitude
-    alt: boolean, default False
+    alternatives: boolean, optional
         Query (and resolve geometry if asked) for alternatives routes
+        (default: False)
     output: str, default 'full'
         Define the type of output (full response or only route(s))
-    url_config: dict,
+    geometry: str, optional
+        Format in which decode the geometry, either "polyline" (ie. not decoded),
+        "geojson", "WKT" or "WKB" (default: "polyline").
+    overview: str, optional
+        Query for the geometry overview, either "simplified", "full" or "false"
+        (Default: "simplified")
+    url_config: osrm.RequestConfig, optional
         Parameters regarding the host, version and profile to use
 
-    Output:
-    - if 'raw' : the original json returned by OSRM
-    - if 'WKT' : the json returned by OSRM with the 'route_geometry' converted
-                 in WKT format
-    - if 'WKB' : the json returned by OSRM with the 'route_geometry' converted
-                 in WKB format
+    Returns
+    -------
+    result: dict
     """
     if geometry.lower() not in ('wkt', 'well-known-text', 'text', 'polyline',
                                 'wkb', 'well-known-binary', 'geojson'):
@@ -198,26 +220,34 @@ def table(coords_src, coords_dest=None,
     Function wrapping OSRM 'table' function in order to get a matrix of
     time distance as a numpy array or as a DataFrame
 
-    Params :
+    Parameters
+    ----------
 
-        coords_src: list
-            A list of coord as (lat, long) , like :
-                 list_coords = [(21.3224, 45.2358),
-                                (21.3856, 42.0094),
-                                (20.9574, 41.5286)] (coords have to be float)
-        coords_dest: list, optionnal, default None
-            A list of coord as (lat, long) , like :
-                 list_coords = [(21.3224, 45.2358),
-                                (21.3856, 42.0094),
-                                (20.9574, 41.5286)] (coords have to be float)
-    url_config: dict,
-        Parameters regarding the host, version and profile to use
-    output: str, default 'np'
+    coords_src: list
+        A list of coord as (lat, long) , like :
+             list_coords = [(21.3224, 45.2358),
+                            (21.3856, 42.0094),
+                            (20.9574, 41.5286)] (coords have to be float)
+    coords_dest: list, optional
+        A list of coord as (lat, long) , like :
+             list_coords = [(21.3224, 45.2358),
+                            (21.3856, 42.0094),
+                            (20.9574, 41.5286)] (coords have to be float)
+    ids_origin: list, optional
+        (default: None)
+    ids_dest: list, optional
+        (default: None)
+    output: str, optional
             The type of durations matrice to return (DataFrame or numpy array)
                 'raw' for the (parsed) json response from OSRM
                 'pandas', 'df' or 'DataFrame' for a DataFrame
-                'numpy', 'array' or 'np' for a numpy array
-    Output:
+                'numpy', 'array' or 'np' for a numpy array (default is "np")
+    url_config: osrm.RequestConfig, optional
+        Parameters regarding the host, version and profile to use
+
+
+    Returns
+    -------
         - 'raw' : Return the raw json response
         - 'numpy' : a numpy array containing the time in minutes,
                     a list of snapped origin coordinates,
@@ -313,14 +343,17 @@ def nearest(coord, url_config=RequestConfig):
     """
     Useless function wrapping OSRM 'nearest' function,
     returning the reponse in JSON
-    Params:
 
+    Parameters
+    ----------
     coord: list/tuple of two floats
         (x ,y) where x is longitude and y is latitude
-    url_config: dict,
+    url_config: osrm.RequestConfig, optional
         Parameters regarding the host, version and profile to use
 
-    Output:
+    Returns
+    -------
+    result: dict
         The response from the osrm instance, parsed as a dict
     """
     host = check_host(url_config.host)
@@ -340,25 +373,31 @@ def trip(coords, steps=False, output="full",
     Function wrapping OSRM 'trip' function and returning the JSON reponse
     with the route_geometry decoded (in WKT or WKB) if needed.
 
-    Params:
-
+    Parameters
+    ----------
     coord_origin: list/tuple of two floats
         (x ,y) where x is longitude and y is latitude
-    step: bool, default False
+    steps: bool, default False
     output: str, default 'full'
         Define the type of output (full response or only route(s))
-    overview: str, default "simplified"
-    url_config: dict,
+    geometry: str, optional
+        Format in which decode the geometry, either "polyline" (ie. not decoded),
+        "geojson", "WKT" or "WKB" (default: "polyline").
+    overview: str, optional
+        Query for the geometry overview, either "simplified", "full" or "false"
+        (Default: "simplified")
+    url_config: osrm.RequestConfig, optional
         Parameters regarding the host, version and profile to use
 
-    Output:
-    - if 'only_index' : a dict containing respective indexes
-                        of trips and waypoints
-    - if 'raw' : the original json returned by OSRM
-    - if 'WKT' : the json returned by OSRM with the 'route_geometry' converted
-                 in WKT format
-    - if 'WKB' : the json returned by OSRM with the 'route_geometry' converted
-                 in WKB format
+    Returns
+    -------
+        - if 'only_index' : a dict containing respective indexes
+                            of trips and waypoints
+        - if 'raw' : the original json returned by OSRM
+        - if 'WKT' : the json returned by OSRM with the 'route_geometry' converted
+                     in WKT format
+        - if 'WKB' : the json returned by OSRM with the 'route_geometry' converted
+                     in WKB format
     """
     if geometry.lower() not in ('wkt', 'well-known-text', 'text', 'polyline',
                                 'wkb', 'well-known-binary', 'geojson'):

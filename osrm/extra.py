@@ -22,14 +22,16 @@ def contour_poly(gdf, field_name, n_class):
         The GeoDataFrame containing points and associated values.
     field_name: String
         The name of the column of *gdf* containing the value to use.
-    n_class: int,
+    n_class: int
         The number of class to use for contour polygons if levels is an
         integer (exemple: levels=8).
-    Return
-    ------
+
+    Returns
+    -------
     collection_polygons: matplotlib.contour.QuadContourSet
         The shape of the computed polygons.
-    levels: list of integers
+    levels: list of ints
+        The levels actually used when making the contours.
     """
     # Dont take point without value :
     gdf = gdf.iloc[gdf[field_name].nonzero()[0]][:]
@@ -129,7 +131,7 @@ def make_grid(gdf, nb_points):
     ----------
     gdf: GeoDataFrame
         The collection of polygons to be covered by the grid.
-    nb_points: Integer
+    nb_points: int
         The number of expected points of the grid.
 
     Returns
@@ -167,20 +169,42 @@ def make_grid(gdf, nb_points):
 
 
 class AccessIsochrone:
+    """
+    Object allowing to query an OSRM instance for a matrix of distance within
+    a defined radius, store the distance (to avoid making the same query again
+    when not needed), interpolate time values on a grid and render the contour
+    polygons.
+
+    Parameters
+    ----------
+    point_origin: 2-floats tuple
+        The coordinates of the center point to use as (x, y).
+    points_grid: Integer
+        The number of points of the underlying grid to use.
+    size: float
+        Search radius (in degree).
+    url_config: osrm.RequestConfig
+        The OSRM url to be requested
+
+    Attributes
+    ----------
+    center_point: collections.namedtuple
+        The coordinates of the point used a center (potentially moved from the
+        original point in order to be on the network).
+    grid: geopandas.GeoDataFrame
+        The point locations retrieved from OSRM (ie. potentially moved
+        to be on the routable network).
+    times: numpy.ndarray
+        The time-distance table retrieved from OSRM.
+
+    Methods
+    -------
+    render_contour(nb_class)
+        Render the contour polygon according to the choosen number of class.
+    """
+
     def __init__(self, point_origin, points_grid=250,
                  size=0.4, url_config=RequestConfig):
-        """
-        Parameters
-        ----------
-        point_origin: 2-floats tuple
-            The coordinates of the center point to use as (x, y).
-        points_grid: Integer
-            The number of points of the underlying grid to use.
-        size: float
-            Search radius (in degree).
-        url_config: osrm.RequestConfig
-            The OSRM url to be requested
-        """
         gdf = GeoDataFrame(geometry=[Point(point_origin).buffer(size)])
         grid = make_grid(gdf, points_grid)
         coords_grid = \
@@ -201,56 +225,14 @@ class AccessIsochrone:
         """
         Parameters
         ----------
-        n_class: Integer
-             The desired number of class
+        n_class: int
+             The desired number of class.
 
-        Return
-        ------
+        Returns
+        -------
         gdf_poly: GeoDataFrame
             The shape of the computed accessibility polygons.
         """
         collec_poly, levels = contour_poly(self.grid, 'time', n_class=n_class)
         gdf_poly = isopoly_to_gdf(collec_poly, 'time', levels)
         return gdf_poly
-
-#def access_isocrone(point_origin, points_grid=100,
-#                    size=0.4, n_class=8,
-#                    url_config=RequestConfig):
-#    """
-#    Parameters
-#    ----------
-#    point_origin: 2-floats tuple
-#        The coordinates of the center point to use as (x, y).
-#    nb_points: Integer
-#        The number of points of the underlying grid to use.
-#    size: float
-#        Search radius (in degree).
-#    url_config: osrm.RequestConfig
-#
-#    Return
-#    ------
-#    gdf_poly: GeoDataFrame
-#        The shape of the computed accessibility polygons.
-#    new_point_origin: osrm.Point
-#        The coordinates (latitude, longitude) of the origin point
-#        (could have been slightly moved to be on a road).
-#    """
-#    gdf = GeoDataFrame(geometry=[Point(point_origin).buffer(size)])
-#    grid = make_grid(gdf, points_grid)
-#    coords_grid = \
-#        [(i.coords.xy[0][0], i.coords.xy[1][0]) for i in grid.geometry]
-#    times, new_pt_origin, pts_dest = \
-#        table([point_origin], coords_grid, url_config)
-#    times = (times[0] / 60.0).round(2)  # Round values in minutes
-#    geoms, values = [], []
-#    for time, coord in zip(times, pts_dest):
-#        if time:
-#            geoms.append(Point(coord))
-#            values.append(time)
-#    grid = GeoDataFrame(geometry=geoms, data=values, columns=['time'])
-#    del geoms
-#    del values
-#    collec_poly, levels = contour_poly(grid, 'time', n_class=n_class)
-#    gdf_poly = isopoly_to_gdf(collec_poly, 'time', levels)
-#    return gdf_poly, _Point(latitude=new_pt_origin[0][0],
-#                            longitude=new_pt_origin[0][1])
