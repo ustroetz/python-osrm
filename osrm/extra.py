@@ -16,22 +16,27 @@ from matplotlib.mlab import griddata
 
 def contour_poly(gdf, field_name, n_class):
     """
+    Interpolate the time values (stored in the column `field_name`)
+    from the points contained in `gdf` and compute the contour polygons
+    in `n_class`.
+
     Parameters
     ----------
-    gdf: :py:obj:`geopandas.GeoDataFrame`
+    gdf : :py:obj:`geopandas.GeoDataFrame`
         The GeoDataFrame containing points and associated values.
-    field_name: String
+    field_name : str
         The name of the column of *gdf* containing the value to use.
-    n_class: int
+    n_class : int
         The number of class to use for contour polygons if levels is an
         integer (exemple: levels=8).
 
     Returns
     -------
-    collection_polygons: matplotlib.contour.QuadContourSet
+    collection_polygons : :py:obj:matplotlib.contour.QuadContourSet
         The shape of the computed polygons.
-    levels: list of ints
-        The levels actually used when making the contours.
+    levels : list of ints/floats
+        The levels actually used when making the contours, excluding
+        the minimum (should be a list of `n_class` values).
     """
     # Dont take point without value :
     gdf = gdf.iloc[gdf[field_name].nonzero()[0]][:]
@@ -92,6 +97,28 @@ def contour_poly(gdf, field_name, n_class):
 
 
 def isopoly_to_gdf(collec_poly, field_name, levels):
+    """
+    Transform a collection of matplotlib polygons (:py:obj:`QuadContourSet`)
+    to a :py:obj:`GeoDataFrame` with a columns (`field_name`) filled by the
+    values contained in `levels`.
+
+    Parameters
+    ----------
+    collec_poly : :py:obj:matplotlib.contour.QuadContourSet
+        The previously retrieved collections of contour polygons.
+    field_name : str
+        The name of the column to create which will contain values from `levels`.
+    levels : list of ints/floats
+        The values to be used when creating the `GeoDataFrame` of polygons,
+        likely the values corresponding to the bins values
+        used to create the polygons in the contourf function.
+
+    Returns
+    -------
+    gdf_polygons : :py:obj:`GeoDataFrame`
+        The contour polygons as a GeoDataFrame, with a column filled
+        with the corresponding levels.
+    """
     polygons, data = [], []
 
     for i, polygon in enumerate(collec_poly.collections):
@@ -127,16 +154,17 @@ def make_grid(gdf, nb_points):
     """
     Return a grid, based on the shape of *gdf* and on a *height* value (in
     units of *gdf*).
+
     Parameters
     ----------
-    gdf: GeoDataFrame
+    gdf : GeoDataFrame
         The collection of polygons to be covered by the grid.
-    nb_points: int
+    nb_points : int
         The number of expected points of the grid.
 
     Returns
     -------
-    grid: GeoDataFrame
+    grid : GeoDataFrame
         A collection of polygons.
     """
     xmin, ymin, xmax, ymax = gdf.total_bounds
@@ -177,24 +205,24 @@ class AccessIsochrone:
 
     Parameters
     ----------
-    point_origin: 2-floats tuple
+    point_origin : 2-floats tuple
         The coordinates of the center point to use as (x, y).
-    points_grid: Integer
+    points_grid : int
         The number of points of the underlying grid to use.
-    size: float
+    size : float
         Search radius (in degree).
-    url_config: osrm.RequestConfig
-        The OSRM url to be requested
+    url_config : osrm.RequestConfig
+        The OSRM url to be requested.
 
     Attributes
     ----------
-    center_point: collections.namedtuple
+    center_point : collections.namedtuple
         The coordinates of the point used a center (potentially moved from the
         original point in order to be on the network).
-    grid: geopandas.GeoDataFrame
+    grid : geopandas.GeoDataFrame
         The point locations retrieved from OSRM (ie. potentially moved
         to be on the routable network).
-    times: numpy.ndarray
+    times : numpy.ndarray
         The time-distance table retrieved from OSRM.
 
     Methods
@@ -225,12 +253,12 @@ class AccessIsochrone:
         """
         Parameters
         ----------
-        n_class: int
+        n_class : int
              The desired number of class.
 
         Returns
         -------
-        gdf_poly: GeoDataFrame
+        gdf_poly : GeoDataFrame
             The shape of the computed accessibility polygons.
         """
         collec_poly, levels = contour_poly(self.grid, 'time', n_class=n_class)
