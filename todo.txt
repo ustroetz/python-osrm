@@ -1,0 +1,5 @@
+TODO:
+- Allow to use other OSRM params (like hints, bearing, etc.)
+- Always convert coordinates to polyline before sending request
+- Use better arguments for isochrones sizes / breaks / spans
+- Etc.

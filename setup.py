@@ -1,16 +1,16 @@
 from setuptools import setup
-import osrm
+#from osrm import __version__
+
+
+with open("requirements.txt") as f:
+    requirements = f.read().split('\n')
 
 setup(
     name='osrm',
-    version=osrm.__version__,
+    version='0.11.1',
     author="Ulric Stroetz, mthh",
     author_email="ustroetz@gmail.com",
     packages=['osrm'],
-    install_requires=[
-        'requests',
-        'polyline',
-        'GDAL',
-        'numpy',
-        'pandas']
+    test_suite="tests",
+    install_requires=requirements
     )
