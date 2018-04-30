@@ -115,11 +115,10 @@ def decode_geom(encoded_polyline):
         lineAddPts(coord[1], coord[0])
     return ma_ligne
 
-
 def simple_route(coord_origin, coord_dest, coord_intermediate=None,
                  alternatives=False, steps=False, output="full",
                  geometry='polyline', overview="simplified",
-                 url_config=RequestConfig, send_as_polyline=True):
+                 url_config=RequestConfig, send_as_polyline=True,annotations='true'):
     """
     Function wrapping OSRM 'viaroute' function and returning the JSON reponse
     with the route_geometry decoded (in WKT or WKB) if needed.
@@ -146,6 +145,9 @@ def simple_route(coord_origin, coord_dest, coord_intermediate=None,
         (Default: "simplified")
     url_config : osrm.RequestConfig, optional
         Parameters regarding the host, version and profile to use
+
+    annotations : str, optional ... 
+        parameters: true, false... 
 
     Returns
     -------
@@ -186,9 +188,9 @@ def simple_route(coord_origin, coord_dest, coord_intermediate=None,
         url = [
             host, "/route/", url_config.version, "/", url_config.profile, "/",
             "polyline(", polyline_encode(coords), ")",
-            "?overview={}&steps={}&alternatives={}&geometries={}".format(
+            "?overview={}&steps={}&alternatives={}&geometries={}&annotations={}".format(
                  overview, str(steps).lower(),
-                 str(alternatives).lower(), geom_request)
+                 str(alternatives).lower(), geom_request,annotations)
             ]
     rep = urlopen(''.join(url))
     parsed_json = json.loads(rep.read().decode('utf-8'))
@@ -206,7 +208,7 @@ def simple_route(coord_origin, coord_dest, coord_intermediate=None,
 
             for route in parsed_json["routes"]:
                 route["geometry"] = func(decode_geom(route["geometry"]))
-
+                
         return parsed_json if output == "full" else parsed_json["routes"]
 
     else:
