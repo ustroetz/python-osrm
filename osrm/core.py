@@ -366,7 +366,7 @@ def nearest(coord, url_config=RequestConfig):
     host = check_host(url_config.host)
     url = '/'.join(
         [host, 'nearest', url_config.version, url_config.profile,
-         str(coord).replace('(', '').replace(')', '').replace(' ', '')]
+         ','.join(map(str, coord))]
         )
     rep = urlopen(url)
     parsed_json = json.loads(rep.read().decode('utf-8'))
