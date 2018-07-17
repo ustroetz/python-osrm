@@ -7,8 +7,10 @@ from . import RequestConfig
 
 try:
     from urllib.request import urlopen, Request
+    from urllib.parse import quote
 except:
     from urllib2 import urlopen, Request
+    from urllib2 import quote
 
 try:
     from osgeo.ogr import Geometry
@@ -190,7 +192,7 @@ def simple_route(coord_origin, coord_dest, coord_intermediate=None,
             ]
         url = [
             host, "/route/", url_config.version, "/", url_config.profile, "/",
-            "polyline(", polyline_encode(coords), ")",
+            "polyline(", quote(polyline_encode(coords)), ")",
             "?overview={}&steps={}&alternatives={}&geometries={}&annotations={}".format(
                  overview, str(steps).lower(),
                  str(alternatives).lower(), geom_request,annotations)
@@ -303,7 +305,7 @@ def table(coords_src, coords_dest=None,
         if not coords_dest:
             url = ''.join([url,
                            "polyline(",
-                           polyline_encode([(c[1], c[0]) for c in coords_src]),
+                           quote(polyline_encode([(c[1], c[0]) for c in coords_src])),
                            ")"])
         else:
             src_end = len(coords_src)
@@ -311,8 +313,8 @@ def table(coords_src, coords_dest=None,
             url = ''.join([
                 url,
                 "polyline(",
-                polyline_encode(
-                    [(c[1], c[0]) for c in _chain(coords_src, coords_dest)]),
+                quote(polyline_encode(
+                    [(c[1], c[0]) for c in _chain(coords_src, coords_dest)])),
                 ")",
                 '?sources=',
                 ';'.join([str(i) for i in range(src_end)]),
@@ -429,7 +431,7 @@ def trip(coords, steps=False, output="full",
 
     coords_request = \
         "".join(['Polyline(',
-                 polyline_encode([(c[1], c[0]) for c in coords]),
+                 quote(polyline_encode([(c[1], c[0]) for c in coords])),
                  ')']) \
         if send_as_polyline \
         else ';'.join([','.join([str(c[0]), str(c[1])]) for c in coords])
