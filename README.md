@@ -1,39 +1,41 @@
-
 # python-osrm
+
 A Python wrapper around the [OSRM API](https://github.com/Project-OSRM/osrm-backend/wiki/Server-api).
-  
+
 [![Build Status](https://travis-ci.org/mthh/python-osrm.svg?branch=master)](https://travis-ci.org/mthh/python-osrm)
-  
-- Provide an easy access to *viaroute*, *table*, *trip*, *match* and *nearest* functionnalities.
+
+- Provide an easy access to _viaroute_, _table_, _trip_, _match_ and _nearest_ functionnalities.
 - Wrap most of the options of the API (overview, steps, alternatives, etc.).
 - Allow to directly decode geometry to various formats (list of coordinates, WKT, WKB) to be integrated in, let's say, a geo-layer creation with python ogr package.
 - Send coordinates encoded as Polyline as this is the prefered way to query the API.
-- Allow to draw accessibility isochrones around a point (through the utilisation of OSRM *table* service).
+- Allow to draw accessibility isochrones around a point (through the utilisation of OSRM _table_ service).
 - Intended to work on python 2.7.x and python 3.
 - Open to suggestions !
 
-## Install
+## Installation
+
 ```
-git clone git@github.com:ustroetz/python-osrm.git
-cd python-osrm
-python setup.py install
+$ pip install osrm
 ```
 
 ## Running the test suite
+
 ```
 python setup.py test
 ```
 
 ## Requires
-  * polyline
-  * numpy
-  * pandas
-  * geopandas
-  * GDAL
+
+- polyline
+- numpy
+- pandas
+- geopandas
+- GDAL
 
 ## Usage
 
 ### match
+
 ```python
 In [17]: import osrm
 
@@ -45,8 +47,10 @@ In [19]: result = osrm.match(points, step=False, overview="simplified")
 ```
 
 ### route
+
 Return the original JSON reponse from OSRM (with optionnaly the geometry decoded in WKT or WKB),
 allow optionnaly to only output the routes.
+
 ```python
 In [23]: import osrm
 In [24]: result = osrm.simple_route(
@@ -64,8 +68,10 @@ Out[26]:
 ```
 
 ### table
+
 A simple wrapping function to fetch the matrix computed by OSRM as a dataframe (or as a numpy array),
 as well as corrected/snapped localisation of the points used.
+
 ```python
 In [28]: import osrm
 
@@ -105,11 +111,12 @@ Out[24]:
    'location': [13.388799, 52.517032],
    'distance': 4.085341}],
  'code': 'Ok'}
-
 ```
 
-### Accessibility isochrones (based on OSRM *table* service):
+### Accessibility isochrones (based on OSRM _table_ service):
+
 Current options are the number of class and the precision/size of the underlying grid used.
+
 ```python
 In [1]: import osrm
 
@@ -120,21 +127,26 @@ In [3]: gdf = Accessibility.render_contour(n_class=8)
 In [4]: gdf.plot(cmap="YlOrRd")
 Out[4]: <matplotlib.axes._subplots.AxesSubplot at 0x7f13447b8978>
 ```
+
 ![png](misc/exp_matplotlib.png)
+
 ```python
 In [5]: Accessibility.grid.plot()  # The grid of points is stored as a GeoDataFrame too
 Out[5]: <matplotlib.axes._subplots.AxesSubplot at 0x7f134467ae80>
 ```
+
 ![png](misc/exp_matplotlib2.png)
 
-
 ### Trip
+
 Fetch the full result (with geometry decoded to list, WKT or WKB) or grab only
 the order of the point to travel from.
+
 ```python
+
 ```
 
-### Using a *Point* instance to avoid confusion between x/y/latitude/longitude :
+### Using a _Point_ instance to avoid confusion between x/y/latitude/longitude :
 
 ```python
 In [25]: from osrm import Point, simple_route
@@ -160,7 +172,7 @@ In [33]: osrm.RequestConfig.host = "router.project-osrm.org"
 In [34]: result = osrm.simple_route(p1, p2)
 ```
 
-#### Or using a new *RequestConfig* instance, to switch between various url and use basic authentification :
+#### Or using a new _RequestConfig_ instance, to switch between various url and use basic authentification :
 
 ```python
 In [35]: MyConfig = osrm.RequestConfig("localhost:9999/v1/biking", basic_auth=("user", "pass"))
@@ -175,4 +187,3 @@ Out[38]: localhost:9999/*/v1/driving
 
 In [39]: result = osrm.simple_route(p1, p2, url_config=MyConfig)
 ```
-
