@@ -6,9 +6,9 @@ from pandas import DataFrame
 from . import RequestConfig
 
 try:
-    from urllib.request import urlopen
+    from urllib.request import urlopen, Request
 except:
-    from urllib2 import urlopen
+    from urllib2 import urlopen, Request
 
 try:
     from osgeo.ogr import Geometry
@@ -79,7 +79,10 @@ def match(points, steps=False, overview="simplified", geometry="polyline",
     if timestamps:
         url.append(";".join([str(timestamp) for timestamp in timestamps]))
 
-    r = urlopen("".join(url))
+    req = Request("".join(url))
+    if url_config.auth:
+        req.add_header("Authorization", url_config.auth)
+    r = urlopen(req)
     r_json = json.loads(r.read().decode('utf-8'))
     if "code" not in r_json or "Ok" not in r_json["code"]:
         if 'matchings' in r_json.keys():
@@ -192,7 +195,10 @@ def simple_route(coord_origin, coord_dest, coord_intermediate=None,
                  overview, str(steps).lower(),
                  str(alternatives).lower(), geom_request,annotations)
             ]
-    rep = urlopen(''.join(url))
+    req = Request("".join(url))
+    if url_config.auth:
+        req.add_header("Authorization", url_config.auth)
+    rep = urlopen(req)
     parsed_json = json.loads(rep.read().decode('utf-8'))
 
     if "Ok" in parsed_json['code']:
@@ -314,7 +320,10 @@ def table(coords_src, coords_dest=None,
                 ';'.join([str(j) for j in range(src_end, dest_end)])
                 ])
 
-    rep = urlopen(url)
+    req = Request(url)
+    if url_config.auth:
+        req.add_header("Authorization", url_config.auth)
+    rep = urlopen(req)
     parsed_json = json.loads(rep.read().decode('utf-8'))
 
     if "code" not in parsed_json or "Ok" not in parsed_json["code"]:
@@ -368,7 +377,10 @@ def nearest(coord, url_config=RequestConfig):
         [host, 'nearest', url_config.version, url_config.profile,
          str(coord).replace('(', '').replace(')', '').replace(' ', '')]
         )
-    rep = urlopen(url)
+    req = Request(url)
+    if url_config.auth:
+        req.add_header("Authorization", url_config.auth)
+    rep = urlopen(req)
     parsed_json = json.loads(rep.read().decode('utf-8'))
     return parsed_json
 
@@ -430,7 +442,10 @@ def trip(coords, steps=False, output="full",
          '&overview={}'.format(overview)
          ])
 
-    rep = urlopen(url)
+    req = Request(url)
+    if url_config.auth:
+        req.add_header("Authorization", url_config.auth)
+    rep = urlopen(req)
     parsed_json = json.loads(rep.read().decode('utf-8'))
 
     if "Ok" in parsed_json['code']:

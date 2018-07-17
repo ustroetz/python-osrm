@@ -88,3 +88,9 @@ ENV/
 
 # Rope project settings
 .ropeproject
+
+# JetBrains family
+.idea
+
+# OSX
+.DS_Store

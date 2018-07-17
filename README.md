@@ -160,10 +160,10 @@ In [33]: osrm.RequestConfig.host = "router.project-osrm.org"
 In [34]: result = osrm.simple_route(p1, p2)
 ```
 
-#### Or using a new *RequestConfig* instance, to switch between various url :
+#### Or using a new *RequestConfig* instance, to switch between various url and use basic authentification :
 
 ```python
-In [35]: MyConfig = osrm.RequestConfig("localhost:9999/v1/biking")
+In [35]: MyConfig = osrm.RequestConfig("localhost:9999/v1/biking", basic_auth=("user", "pass"))
 
 In [36]: MyConfig
 Out[36]: localhost:9999/*/v1/biking
