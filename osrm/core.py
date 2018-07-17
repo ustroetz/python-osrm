@@ -375,7 +375,7 @@ def nearest(coord, url_config=RequestConfig):
     host = check_host(url_config.host)
     url = '/'.join(
         [host, 'nearest', url_config.version, url_config.profile,
-         str(coord).replace('(', '').replace(')', '').replace(' ', '')]
+         ','.join(map(str, coord))]
         )
     req = Request(url)
     if url_config.auth:
