@@ -430,7 +430,7 @@ def trip(coords, steps=False, output="full",
     host = check_host(url_config.host)
 
     coords_request = \
-        "".join(['Polyline(',
+        "".join(['polyline(',
                  quote(polyline_encode([(c[1], c[0]) for c in coords])),
                  ')']) \
         if send_as_polyline \
