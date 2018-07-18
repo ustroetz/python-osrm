@@ -48,7 +48,7 @@ class DefaultRequestConfig:
 
 RequestConfig = DefaultRequestConfig()
 
-Point = namedtuple("Point", ("latitude", "longitude"))
+Point = namedtuple("Point", ("longitude", "latitude"))
 
 from .core import match, simple_route, nearest, table, trip, _chain
 from .extra import AccessIsochrone
