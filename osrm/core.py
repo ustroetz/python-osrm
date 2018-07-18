@@ -189,9 +189,9 @@ def simple_route(coord_origin, coord_dest, coord_intermediate=None,
 
         url.extend([
             '{},{}'.format(coord_dest[0], coord_dest[1]),
-            "?overview={}&steps={}&alternatives={}&geometries={}".format(
+            "?overview={}&steps={}&alternatives={}&geometries={}&continue_straight={}".format(
                  overview, str(steps).lower(),
-                 str(alternatives).lower(), geom_request)
+                 str(alternatives).lower(), geom_request, continue_straight)
             ])
     else:
         coords = [
@@ -386,10 +386,10 @@ def nearest(coord, number=1, url_config=RequestConfig):
         The response from the osrm instance, parsed as a dict
     """
     host = check_host(url_config.host)
-    url = [
+    url = ''.join([
         host, '/nearest/', url_config.version, '/', url_config.profile, '/',
          ','.join(map(str, coord)), '?number={}'.format(number)
-    ]
+    ])
 
     req = Request(url)
     if url_config.auth:
