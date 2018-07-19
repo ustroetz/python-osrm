@@ -39,7 +39,8 @@ def check_host(host):
 
 
 def match(points, steps=False, overview="simplified", geometry="polyline",
-          timestamps=None, radius=None, url_config=RequestConfig):
+          timestamps=None, radius=None, annotations="false", gaps="split",
+          tidy=False, waypoints=None, url_config=RequestConfig):
     """
     Function wrapping OSRM 'match' function, returning the reponse in JSON
 
@@ -56,8 +57,12 @@ def match(points, steps=False, overview="simplified", geometry="polyline",
     geometry : str, optional
         Format in which decode the geometry, either "polyline" (ie. not decoded),
         "geojson", "WKT" or "WKB" (default: "polyline").
-    timestamps : bool, optional
-    radius : bool, optional
+    timestamps : list of timestamp, optional
+    radius : list of float, optional
+    annotations : bool, optional
+    gaps : str, optional
+    tidy : bool, optional
+    waypoints : list of tuple/list of point, optional
     url_config : osrm.RequestConfig, optional
         Parameters regarding the host, version and profile to use
 
@@ -72,14 +77,19 @@ def match(points, steps=False, overview="simplified", geometry="polyline",
         host, '/match/', url_config.version, '/', url_config.profile, '/',
         ';'.join(
             [','.join([str(coord[0]), str(coord[1])]) for coord in points]),
-        "?overview={}&steps={}&geometries={}"
-           .format(overview, str(steps).lower(), geometry)
+        "?overview={}&steps={}&geometries={}&annotations={}&gaps={}&tidy={}"
+           .format(overview, str(steps).lower(), geometry, annotations, gaps, str(tidy).lower())
     ]
 
     if radius:
+        url.append("&radiuses=")
         url.append(";".join([str(rad) for rad in radius]))
     if timestamps:
+        url.append("&timestamps=")
         url.append(";".join([str(timestamp) for timestamp in timestamps]))
+    if waypoints:
+        url.append("&waypoints=")
+        url.append(";".join([str(waypoint) for waypoint in waypoints]))
 
     req = Request("".join(url))
     if url_config.auth:
@@ -123,7 +133,8 @@ def decode_geom(encoded_polyline):
 def simple_route(coord_origin, coord_dest, coord_intermediate=None,
                  alternatives=False, steps=False, output="full",
                  geometry='polyline', overview="simplified",
-                 url_config=RequestConfig, send_as_polyline=True,annotations='true'):
+                 annotations='true', continue_straight='default',
+                 url_config=RequestConfig, send_as_polyline=True):
     """
     Function wrapping OSRM 'viaroute' function and returning the JSON reponse
     with the route_geometry decoded (in WKT or WKB) if needed.
@@ -145,14 +156,13 @@ def simple_route(coord_origin, coord_dest, coord_intermediate=None,
     geometry : str, optional
         Format in which decode the geometry, either "polyline" (ie. not decoded),
         "geojson", "WKT" or "WKB" (default: "polyline").
+    annotations : str, optional
+    continue_straight : str, optional
     overview : str, optional
         Query for the geometry overview, either "simplified", "full" or "false"
         (Default: "simplified")
     url_config : osrm.RequestConfig, optional
         Parameters regarding the host, version and profile to use
-
-    annotations : str, optional ... 
-        parameters: true, false... 
 
     Returns
     -------
@@ -179,9 +189,10 @@ def simple_route(coord_origin, coord_dest, coord_intermediate=None,
 
         url.extend([
             '{},{}'.format(coord_dest[0], coord_dest[1]),
-            "?overview={}&steps={}&alternatives={}&geometries={}".format(
+            "?overview={}&steps={}&alternatives={}&geometries={}&annotations={}&continue_straight={}".format(
                  overview, str(steps).lower(),
-                 str(alternatives).lower(), geom_request)
+                 str(alternatives).lower(), geom_request, annotations,
+                 continue_straight)
             ])
     else:
         coords = [
@@ -193,9 +204,10 @@ def simple_route(coord_origin, coord_dest, coord_intermediate=None,
         url = [
             host, "/route/", url_config.version, "/", url_config.profile, "/",
             "polyline(", quote(polyline_encode(coords)), ")",
-            "?overview={}&steps={}&alternatives={}&geometries={}&annotations={}".format(
+            "?overview={}&steps={}&alternatives={}&geometries={}&annotations={}&continue_straight={}".format(
                  overview, str(steps).lower(),
-                 str(alternatives).lower(), geom_request,annotations)
+                 str(alternatives).lower(), geom_request, annotations,
+                 continue_straight)
             ]
     req = Request("".join(url))
     if url_config.auth:
@@ -357,7 +369,7 @@ def table(coords_src, coords_dest=None,
         return durations, new_src_coords, new_dest_coords
 
 
-def nearest(coord, url_config=RequestConfig):
+def nearest(coord, number=1, url_config=RequestConfig):
     """
     Useless function wrapping OSRM 'nearest' function,
     returning the reponse in JSON
@@ -366,6 +378,7 @@ def nearest(coord, url_config=RequestConfig):
     ----------
     coord : list/tuple of two floats
         (x ,y) where x is longitude and y is latitude
+    number : int, optional
     url_config : osrm.RequestConfig, optional
         Parameters regarding the host, version and profile to use
 
@@ -375,10 +388,11 @@ def nearest(coord, url_config=RequestConfig):
         The response from the osrm instance, parsed as a dict
     """
     host = check_host(url_config.host)
-    url = '/'.join(
-        [host, 'nearest', url_config.version, url_config.profile,
-         ','.join(map(str, coord))]
-        )
+    url = ''.join([
+        host, '/nearest/', url_config.version, '/', url_config.profile, '/',
+         ','.join(map(str, coord)), '?number={}'.format(number)
+    ])
+
     req = Request(url)
     if url_config.auth:
         req.add_header("Authorization", url_config.auth)
@@ -389,7 +403,8 @@ def nearest(coord, url_config=RequestConfig):
 
 def trip(coords, steps=False, output="full",
          geometry='polyline', overview="simplified",
-         url_config=RequestConfig, send_as_polyline=True):
+         roundtrip=True, source="any", destination="any",
+         annotations="false", url_config=RequestConfig, send_as_polyline=True):
     """
     Function wrapping OSRM 'trip' function and returning the JSON reponse
     with the route_geometry decoded (in WKT or WKB) if needed.
@@ -407,6 +422,10 @@ def trip(coords, steps=False, output="full",
     overview : str, optional
         Query for the geometry overview, either "simplified", "full" or "false"
         (Default: "simplified")
+    roundtrip : bool, optional
+    source : str, optional
+    destination : str, optional
+    annotations : str, optional
     url_config : osrm.RequestConfig, optional
         Parameters regarding the host, version and profile to use
 
@@ -441,7 +460,11 @@ def trip(coords, steps=False, output="full",
          coords_request,
          '?steps={}'.format(str(steps).lower()),
          '&geometries={}'.format(geom_request),
-         '&overview={}'.format(overview)
+         '&overview={}'.format(overview),
+         '&roundtrip={}'.format(str(roundtrip).lower()),
+         '&source={}'.format(source),
+         '&destination={}'.format(destination),
+         '&annotations={}'.format(annotations)
          ])
 
     req = Request(url)
