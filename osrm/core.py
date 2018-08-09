@@ -249,12 +249,12 @@ def table(coords_src, coords_dest=None,
     ----------
 
     coords_src : list
-        A list of coord as (lat, long) , like :
+        A list of coord as (longitude, latitude) , like :
              list_coords = [(21.3224, 45.2358),
                             (21.3856, 42.0094),
                             (20.9574, 41.5286)] (coords have to be float)
     coords_dest : list, optional
-        A list of coord as (lat, long) , like :
+        A list of coord as (longitude, latitude) , like :
              list_coords = [(21.3224, 45.2358),
                             (21.3856, 42.0094),
                             (20.9574, 41.5286)] (coords have to be float)
@@ -449,7 +449,7 @@ def trip(coords, steps=False, output="full",
     host = check_host(url_config.host)
 
     coords_request = \
-        "".join(['Polyline(',
+        "".join(['polyline(',
                  quote(polyline_encode([(c[1], c[0]) for c in coords])),
                  ')']) \
         if send_as_polyline \
