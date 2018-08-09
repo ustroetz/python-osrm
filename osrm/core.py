@@ -239,7 +239,7 @@ def simple_route(coord_origin, coord_dest, coord_intermediate=None,
 
 def table(coords_src, coords_dest=None,
           ids_origin=None, ids_dest=None,
-          output='np', minutes=False,
+          output='np', minutes=False, annotations='duration',
           url_config=RequestConfig, send_as_polyline=True):
     """
     Function wrapping OSRM 'table' function in order to get a matrix of
@@ -265,10 +265,12 @@ def table(coords_src, coords_dest=None,
         A list of name/id to use to label the destination axis of
         the result `DataFrame` (default: None).
     output : str, optional
-            The type of durations matrice to return (DataFrame or numpy array)
+            The type of annotated matrice to return (DataFrame or numpy array)
                 'raw' for the (parsed) json response from OSRM
                 'pandas', 'df' or 'DataFrame' for a DataFrame
                 'numpy', 'array' or 'np' for a numpy array (default is "np")
+    annotations : str, optional
+        Either 'duration' (default) or 'distance'
     url_config: osrm.RequestConfig, optional
         Parameters regarding the host, version and profile to use
 
@@ -297,9 +299,10 @@ def table(coords_src, coords_dest=None,
     if not send_as_polyline:
         if not coords_dest:
             url = ''.join([
-                 url,
-                 ';'.join([','.join([str(coord[0]), str(coord[1])])
-                           for coord in coords_src])
+                  url,
+                  ';'.join([','.join([str(coord[0]), str(coord[1])])
+                            for coord in coords_src]),
+                  '?annotations={}'.format(annotations)
                 ])
         else:
             src_end = len(coords_src)
@@ -311,14 +314,18 @@ def table(coords_src, coords_dest=None,
                 '?sources=',
                 ';'.join([str(i) for i in range(src_end)]),
                 '&destinations=',
-                ';'.join([str(j) for j in range(src_end, dest_end)])
+                ';'.join([str(j) for j in range(src_end, dest_end)]),
+                '&annotations={}'.format(annotations)
                 ])
     else:
         if not coords_dest:
-            url = ''.join([url,
-                           "polyline(",
-                           quote(polyline_encode([(c[1], c[0]) for c in coords_src])),
-                           ")"])
+            url = ''.join([
+                  url,
+                  "polyline(",
+                  quote(polyline_encode([(c[1], c[0]) for c in coords_src])),
+                  ")",
+                  '?annotations={}'.format(annotations)
+                ])
         else:
             src_end = len(coords_src)
             dest_end = src_end + len(coords_dest)
@@ -331,7 +338,8 @@ def table(coords_src, coords_dest=None,
                 '?sources=',
                 ';'.join([str(i) for i in range(src_end)]),
                 '&destinations=',
-                ';'.join([str(j) for j in range(src_end, dest_end)])
+                ';'.join([str(j) for j in range(src_end, dest_end)]),
+                '&annotations={}'.format(annotations)
                 ])
 
     req = Request(url)
@@ -347,13 +355,15 @@ def table(coords_src, coords_dest=None,
         return parsed_json
 
     else:
-        durations = np.array(parsed_json["durations"], dtype=float)
+        annoted = np.array(parsed_json['{}s'.format(annotations)], dtype=float)
+
         new_src_coords = [ft["location"] for ft in parsed_json["sources"]]
         new_dest_coords = None if not coords_dest \
             else [ft["location"] for ft in parsed_json["destinations"]]
 
-        if minutes:  # Conversion in minutes with 2 decimals:
-            durations = np.around((durations / 60), 2)
+        if minutes and annotations == 'duration':  # Conversion in minutes with 2 decimals:
+            annoted = np.around((annoted / 60), 2)
+
         if output == 2:
             if not ids_origin:
                 ids_origin = [i for i in range(len(coords_src))]
@@ -361,12 +371,12 @@ def table(coords_src, coords_dest=None,
                 ids_dest = ids_origin if not coords_dest \
                     else [i for i in range(len(coords_dest))]
 
-            durations = DataFrame(durations,
+            annoted = DataFrame(annoted,
                                   index=ids_origin,
                                   columns=ids_dest,
                                   dtype=float)
 
-        return durations, new_src_coords, new_dest_coords
+        return annoted, new_src_coords, new_dest_coords
 
 
 def nearest(coord, number=1, url_config=RequestConfig):
