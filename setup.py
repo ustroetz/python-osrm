@@ -14,5 +14,5 @@ setup(
     packages=['osrm'],
     test_suite="tests",
     url="https://github.com/ustroetz/python-osrm",
-    version='0.11.2'
+    version='0.11.3'
 )
