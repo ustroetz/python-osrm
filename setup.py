@@ -7,7 +7,7 @@ with open("requirements.txt") as f:
 
 setup(
     author_email="ustroetz@gmail.com",
-    author="Ulric Stroetz, mthh",
+    author="Uli Strötz, mthh",
     description="A Python wrapper around the OSRM API",
     install_requires=requirements,
     name='osrm',
