@@ -6,11 +6,12 @@ with open("requirements.txt") as f:
     requirements = f.read().split('\n')
 
 setup(
-    name='osrm',
-    version='0.11.2',
     author="Ulric Stroetz, mthh",
     author_email="ustroetz@gmail.com",
+    description="A Python wrapper around the OSRM API"
+    install_requires=requirements
+    name='osrm',
     packages=['osrm'],
     test_suite="tests",
-    install_requires=requirements
+    version='0.11.2',
 )
