@@ -143,7 +143,9 @@ Fetch the full result (with geometry decoded to list, WKT or WKB) or grab only
 the order of the point to travel from.
 
 ```python
+In [5]: coords = [(13.388860,52.517037), (10.00,53.55), (52.374444,9.738611)]
 
+In [6]: result = osrm.trip(coords, output = "only_index")
 ```
 
 ### Using a _Point_ instance to avoid confusion between x/y/latitude/longitude :
@@ -159,6 +161,7 @@ In [28]: result = simple_route(p1, p2)
 ```
 
 ### Easily change the host / profile name to query:
+
 #### By changing the default url :
 
 ```python
