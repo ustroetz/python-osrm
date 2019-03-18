@@ -35,8 +35,8 @@ class TestOsrmWrapper(unittest.TestCase):
         self.assertEqual(_list, [789, 45, 78, 96, 7878, 789, 36])
 
         p1 = osrm.Point(latitude=10.00, longitude=53.55)
-        self.assertEqual(p1.latitude, p1[0])
-        self.assertEqual(p1.longitude, p1[1])
+        self.assertEqual(p1.longitude, p1[0])
+        self.assertEqual(p1.latitude, p1[1])
 
     def test_RequestConfig(self):
         default_host = osrm.RequestConfig.host
