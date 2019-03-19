@@ -6,7 +6,7 @@ set -ex
 
 GDALOPTS="  --with-ogr \
             --with-geos \
-            --with-expat \
+            --without-expat \
             --without-libtool \
             --without-gif \
             --without-pg \
@@ -19,7 +19,7 @@ GDALOPTS="  --with-ogr \
             --without-ogdi \
             --without-fme \
             --without-hdf4 \
-            --with-spatialite
+            --without-spatialite
             --with-static-proj4=/usr/lib"
 
 # Create build dir if not exists
@@ -31,12 +31,12 @@ if [ ! -d "$GDALINST" ]; then
   mkdir $GDALINST;
 fi
 
-if [ ! -d $GDALINST/gdal-2.1.0 ]; then
+if [ ! -d $GDALINST/gdal-2.4.0 ]; then
   cd $GDALBUILD
-  wget http://download.osgeo.org/gdal/2.1.0/gdal-2.1.0.tar.gz
-  tar -xzf gdal-2.1.0.tar.gz
-  cd gdal-2.1.0
-  ./configure --prefix=$GDALINST/gdal-2.1.0 $GDALOPTS
+  wget http://download.osgeo.org/gdal/2.4.0/gdal-2.4.0.tar.gz
+  tar -xzf gdal-2.4.0.tar.gz
+  cd gdal-2.4.0
+  ./configure --prefix=$GDALINST/gdal-2.4.0 $GDALOPTS
   make -s -j 2
   make install
 fi

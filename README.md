@@ -137,16 +137,19 @@ Out[5]: <matplotlib.axes._subplots.AxesSubplot at 0x7f134467ae80>
 
 ![png](misc/exp_matplotlib2.png)
 
+
 ### Trip
 
 Fetch the full result (with geometry decoded to list, WKT or WKB) or grab only
 the order of the point to travel from.
 
 ```python
+In [5]: coords = [(13.388860,52.517037), (10.00,53.55), (52.374444,9.738611)]
 
+In [6]: result = osrm.trip(coords, output = "only_index")
 ```
 
-### Using a _Point_ instance to avoid confusion between x/y/latitude/longitude :
+### Using a _Point_ instance to avoid confusion between x/y/latitude/longitude :
 
 ```python
 In [25]: from osrm import Point, simple_route
@@ -158,8 +161,9 @@ In [27]: p2 = Point(latitude=2.536974, longitude=48.793416)
 In [28]: result = simple_route(p1, p2)
 ```
 
-### Easily change the host / profile name to query:
-#### By changing the default url :
+### Easily change the host / profile name to query:
+
+#### By changing the default url :
 
 ```python
 In [31]: import osrm
@@ -172,7 +176,7 @@ In [33]: osrm.RequestConfig.host = "router.project-osrm.org"
 In [34]: result = osrm.simple_route(p1, p2)
 ```
 
-#### Or using a new _RequestConfig_ instance, to switch between various url and use basic authentification :
+#### Or using a new _RequestConfig_ instance, to switch between various url and use basic authentification :
 
 ```python
 In [35]: MyConfig = osrm.RequestConfig("localhost:9999/v1/biking", basic_auth=("user", "pass"))

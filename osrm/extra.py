@@ -39,7 +39,7 @@ def contour_poly(gdf, field_name, n_class):
         the minimum (should be a list of `n_class` values).
     """
     # Dont take point without value :
-    gdf = gdf.iloc[gdf[field_name].nonzero()[0]][:]
+    gdf = gdf.iloc[gdf[field_name].to_numpy().nonzero()[0]][:]
     # Try to avoid unvalid geom :
     if len(gdf.geometry.valid()) != len(gdf):
         # Invalid geoms have been encountered :

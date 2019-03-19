@@ -1,10 +1,13 @@
 language: python
 python:
   - "2.7"
-  - "3.4"
   - "3.5"
+  - "3.6"
+  - "3.7"
 sudo: required
-dist: trusty
+dist: xenial
+services:
+  - xvfb
 cache:
   directories:
     - $GDALINST
@@ -14,11 +17,9 @@ env:
     - GDALINST=$HOME/gdalinstall
     - GDALBUILD=$HOME/gdalbuild
 before_install:
-  - export DISPLAY=:99.0
-  - sh -e /etc/init.d/xvfb start
-  - ./misc/install_gdal.sh
-  - export PATH=$GDALINST/gdal-2.1.0/bin:$PATH
-  - export LD_LIBRARY_PATH=$GDALINST/gdal-2.1.0/lib:$LD_LIBRARY_PATH
+  - travis_wait 30 ./misc/install_gdal.sh
+  - export PATH=$GDALINST/gdal-2.4.0/bin:$PATH
+  - export LD_LIBRARY_PATH=$GDALINST/gdal-2.4.0/lib:$LD_LIBRARY_PATH
 install:
   - pip install --upgrade setuptools pip mock
   - pip install -r requirements.txt
@@ -27,12 +28,8 @@ script:
   - python setup.py test
 addons:
   apt:
-    sources:
-      - deadsnakes
     packages:
-      - python3.5
-      - libpython3.5-dev
-      - libgdal-dev
+      - libgeos-dev
       - libproj-dev
       - python-numpy
       - python3-numpy
