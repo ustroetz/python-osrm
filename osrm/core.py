@@ -186,7 +186,7 @@ def simple_route(coord_origin, coord_dest, coord_intermediate=None,
         if coord_intermediate:
             url.append(";".join(
                 [','.join([str(i), str(j)]) for i, j in coord_intermediate]))
-
+            url.append(";")
         url.extend([
             '{},{}'.format(coord_dest[0], coord_dest[1]),
             "?overview={}&steps={}&alternatives={}&geometries={}&annotations={}&continue_straight={}".format(
@@ -221,9 +221,9 @@ def simple_route(coord_origin, coord_dest, coord_intermediate=None,
         elif geometry in ("polyline", "geojson") and output == "routes":
             return parsed_json["routes"]
         else:
-            if geometry == "wkb":
+            if geometry.lower() == "wkb":
                 func = Geometry.ExportToWkb
-            elif geometry == "wkt":
+            elif geometry.lower() == "wkt":
                 func = Geometry.ExportToWkt
 
             for route in parsed_json["routes"]:
@@ -494,7 +494,7 @@ def trip(coords, steps=False, output="full",
         elif geometry in ("polyline", "geojson") and output == "trip":
             return parsed_json["trips"]
         else:
-            func = Geometry.ExportToWkb if geometry == "wkb" \
+            func = Geometry.ExportToWkb if geometry.lower() == "wkb" \
                 else Geometry.ExportToWkt
 
             for trip_route in parsed_json["trips"]:
