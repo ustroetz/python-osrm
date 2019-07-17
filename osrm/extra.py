@@ -2,12 +2,14 @@
 """
 @author: mthh
 """
-from .core import table
-from . import RequestConfig, Point as _Point
-import numpy as np
-from shapely.geometry import MultiPolygon, Polygon, Point
-from geopandas import GeoDataFrame, pd
 import matplotlib
+import numpy as np
+from geopandas import GeoDataFrame, pd
+from shapely.geometry import MultiPolygon, Polygon, Point
+
+from . import RequestConfig, Point as _Point
+from .core import table
+
 if not matplotlib.get_backend():
     matplotlib.use('Agg')
 import matplotlib.pyplot as plt
