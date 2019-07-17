@@ -26,11 +26,23 @@ python setup.py test
 
 ## Requires
 
+### Linux
+
+- libgdal-dev
+
+### Python packages
+
 - polyline
 - numpy
 - pandas
 - geopandas
 - GDAL
+
+### Running the test suite
+
+```
+python setup.py test
+```
 
 ## Usage
 
