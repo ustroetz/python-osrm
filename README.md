@@ -12,25 +12,50 @@ A Python wrapper around the [OSRM API](https://github.com/Project-OSRM/osrm-back
 - Intended to work on python 2.7.x and python 3.
 - Open to suggestions !
 
+----
+
+ * [- Installation](#installation)
+ * [- Requires](#requires)
+    * [- Linux](#Linux)
+    * [- Python packages](#python-packages)
+    * [- Running the test suite](#running-the-test-suite)
+ * [- Usage](#usage)
+    * [- match](#match)
+    * [- route](#route)
+    * [- table](#table)
+    * [- nearest](#nearest)
+    * [- Accessibility isochrones (based on OSRM _table_ service)](#accessibility-isochrones-based-on-osrm-table-service)
+    * [- Trip](#trip)
+    * [- Using a _Point_ instance to avoid confusion between x/y/latitude/longitude](#using-a-point-instance-to-avoid-confusion-between-xylatitudelongitude-)
+    * [- Easily change the host / profile name to query](#easily-change-the-host--profile-name-to-query)
+      * [- By changing the default url](#by-changing-the-default-url-)
+      * [- Or using a new RequestConfig instance, to switch between various url and use basic authentification](#or-using-a-new-requestconfig-instance-to-switch-between-various-url-and-use-basic-authentification-)
+
 ## Installation
 
 ```
 $ pip install osrm
 ```
 
-## Running the test suite
-
-```
-python setup.py test
-```
-
 ## Requires
+
+### Linux
+
+- libgdal-dev
+
+### Python packages
 
 - polyline
 - numpy
 - pandas
 - geopandas
 - GDAL
+
+### Running the test suite
+
+```
+python setup.py test
+```
 
 ## Usage
 
