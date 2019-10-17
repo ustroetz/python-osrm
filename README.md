@@ -57,10 +57,10 @@ In [24]: result = osrm.simple_route(
                       [21.0566163803209,42.004088575972], [20.9574645547597, 41.5286973392856],
                       output='route', overview="full", geometry='wkt')
 
-In [25]: result['distance']
+In [25]: result[0]['distance']
 Out[25]: 76271
 
-In [26]: result['geometry']
+In [26]: result[0]['geometry']
 Out[26]:
 'LINESTRING (21.056616 42.004088 0,21.056629 42.004078 0,21.056937 42.003885 0,
 (...)
