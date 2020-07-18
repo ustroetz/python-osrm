@@ -13,7 +13,7 @@ from .core import table
 if not matplotlib.get_backend():
     matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from matplotlib.mlab import griddata
+from scipy.interpolate import griddata
 
 
 def contour_poly(gdf, field_name, n_class):

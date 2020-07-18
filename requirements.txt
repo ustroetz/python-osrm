@@ -1,7 +1,7 @@
 polyline
-GDAL==2.4
+GDAL
 numpy
 pandas
 shapely
 geopandas
-matplotlib==2.2.4
+matplotlib
