@@ -9,7 +9,7 @@ from collections import namedtuple
 import base64
 import sys
 
-__version__ = '0.11.1'
+__version__ = '0.11.4'
 
 
 class DefaultRequestConfig:

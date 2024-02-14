@@ -1,6 +1,11 @@
 # -*- coding: utf-8 -*-
 import numpy as np
-from polyline.codec import PolylineCodec
+try:
+    from polyline.codec import PolylineCodec
+    polyline_decoder = PolylineCodec()
+except ModuleNotFoundError:
+    import polyline
+    polyline_decoder = polyline
 from polyline import encode as polyline_encode
 from pandas import DataFrame
 from . import RequestConfig
@@ -102,7 +107,7 @@ def match(points, steps=False, overview="simplified", geometry="polyline",
                 geom_encoded = r_json["matchings"][i]["geometry"]
                 geom_decoded = [[point[1] / 10.0,
                                  point[0] / 10.0] for point
-                                in PolylineCodec().decode(geom_encoded)]
+                                in polyline_decoder.decode(geom_encoded)]
                 r_json["matchings"][i]["geometry"] = geom_decoded
         else:
             print('No matching geometry to decode')
@@ -126,7 +131,7 @@ def decode_geom(encoded_polyline):
     """
     ma_ligne = Geometry(2)
     lineAddPts = ma_ligne.AddPoint_2D
-    for coord in PolylineCodec().decode(encoded_polyline):
+    for coord in polyline_decoder.decode(encoded_polyline):
         lineAddPts(coord[1], coord[0])
     return ma_ligne
 
